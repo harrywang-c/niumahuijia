@@ -4,8 +4,14 @@ class DebugPortalLevelScene extends Phaser.Scene {
     this.cfg = cfg;
   }
 
+  preload() {
+    preloadUiArt(this);
+    preloadGameAssets(this);
+  }
+
   create() {
     createTextures(this);
+    createGameAnimations(this);
     this.LEVEL_WIDTH = this.cfg.width;
     this.GROUND_Y = this.cfg.groundY || 440;
     this._winning = false;
@@ -13,9 +19,11 @@ class DebugPortalLevelScene extends Phaser.Scene {
     this.onGround = false;
     this.sightBlockers = [];
     this._dropTimers = [];
+    this._startTime = this.time.now;
 
     this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 720);
     this.matter.world.on('collisionstart', this._onCollision.bind(this));
+    this.matter.world.on('collisionactive', this._onCollision.bind(this));
 
     this._buildBackground();
     this._buildPlatforms();
@@ -34,25 +42,10 @@ class DebugPortalLevelScene extends Phaser.Scene {
   }
 
   _buildBackground() {
-    const W = 960, H = 540;
-    const bg = this.add.graphics().setScrollFactor(0).setDepth(-10);
-    bg.fillGradientStyle(this.cfg.skyTop, this.cfg.skyTop, this.cfg.skyBottom, this.cfg.skyBottom, 1);
-    bg.fillRect(0, 0, W, H);
-
-    const skyline = this.add.graphics().setScrollFactor(0.22).setDepth(-7);
-    for (let x = -80; x < this.LEVEL_WIDTH; x += 160) {
-      const h = 90 + (x * 17 % 70);
-      skyline.fillStyle(this.cfg.skylineColor, 0.6);
-      skyline.fillRect(x, this.GROUND_Y - h, 112, h);
-      skyline.fillStyle(0xffcc66, 0.25);
-      for (let yy = this.GROUND_Y - h + 18; yy < this.GROUND_Y - 18; yy += 28) {
-        skyline.fillRect(x + 16, yy, 14, 8);
-        skyline.fillRect(x + 58, yy, 14, 8);
-      }
-    }
+    addRainCityBackdrop(this);
 
     const floor = this.add.graphics().setDepth(-4);
-    floor.fillStyle(0x201322);
+    floor.fillStyle(0x121114, 0.9);
     floor.fillRect(0, this.GROUND_Y + 80, this.LEVEL_WIDTH, 260);
   }
 
@@ -70,13 +63,15 @@ class DebugPortalLevelScene extends Phaser.Scene {
     this.sightBlockers.push({ x, y, width: w, height: h });
 
     const g = this.add.graphics().setDepth(1);
-    g.fillStyle(0x2a1508);
+    g.fillStyle(0x151417);
     g.fillRect(x, y, w, h);
-    g.fillStyle(0x58300e);
+    g.fillStyle(0x3d3b3d);
     g.fillRect(x, y + 12, w, h - 12);
-    g.fillStyle(label === 'portal-surface' ? 0x2f6fff : 0x28cc3e);
+    // Uniform city-platform look — the old blue "portal-surface" tint was a
+    // meaningless hint (any surface accepts portals), so all platforms match.
+    g.fillStyle(0x2f3032);
     g.fillRect(x, y, w, 10);
-    g.fillStyle(0xffffff, label === 'portal-surface' ? 0.28 : 0.12);
+    g.fillStyle(0xd1a343, 0.55);
     g.fillRect(x + 4, y + 2, w - 8, 4);
 
     this.matter.add.rectangle(x + w / 2, y + h / 2, w, h, {
@@ -95,24 +90,27 @@ class DebugPortalLevelScene extends Phaser.Scene {
       friction: 0.5
     });
 
+    // Solid concrete pillar that reads as part of the city (not a hint marker).
     const g = this.add.graphics().setDepth(3);
-    g.fillStyle(0x171725);
+    g.fillStyle(0x26262b);
     g.fillRect(x, y, w, h);
-    g.fillStyle(0x111111, 0.8);
-    for (let yy = y + 12; yy < y + h; yy += 18) g.fillRect(x, yy, w, 3);
-    g.lineStyle(2, 0x667799, 0.55);
-    g.strokeRect(x, y, w, h);
+    g.fillStyle(0x2f2f35);                 // lit left edge
+    g.fillRect(x, y, Math.min(4, w), h);
+    g.fillStyle(0x1b1b1f);                  // shadowed right edge
+    g.fillRect(x + w - Math.min(4, w), y, Math.min(4, w), h);
+    g.fillStyle(0x18181c, 0.7);             // concrete seams
+    for (let yy = y + 16; yy < y + h; yy += 22) g.fillRect(x, yy, w, 2);
+    // hazard stripe cap so it still signals "obstacle"
+    for (let xx = x; xx < x + w; xx += 8) {
+      g.fillStyle(((xx - x) / 8) % 2 < 1 ? 0xc8a23a : 0x202024, 0.8);
+      g.fillRect(xx, y, 8, 4);
+    }
   }
 
   _buildPortalHints() {
-    for (const hint of this.cfg.portalHints || []) {
-      const color = hint.color === 'orange' ? 0xff8800 : 0x4488ff;
-      const g = this.add.graphics().setDepth(4);
-      g.fillStyle(color, 0.14);
-      g.fillRect(hint.x - 30, hint.y - 120, 60, 120);
-      g.lineStyle(2, color, 0.85);
-      g.strokeRect(hint.x - 30, hint.y - 6, 60, 6);
-    }
+    // Portal-hint pillars removed — they were decorative only (no mechanical
+    // effect) and read as meaningless light blocks. Portals can target any
+    // visible surface, so no hint markers are needed.
   }
 
   _buildHouse() {
@@ -126,13 +124,11 @@ class DebugPortalLevelScene extends Phaser.Scene {
   }
 
   _buildPlayer() {
-    this.player = this.matter.add.sprite(this.cfg.startX, this.cfg.startY, 'player')
-      .setScale(0.72)
-      .setFixedRotation()
-      .setFriction(0.02)
-      .setFrictionAir(0.015)
-      .setDepth(7);
-    this.player.body.label = 'player';
+    this.player = addPlayerSprite(this, this.cfg.startX, this.cfg.startY, {
+      depth: 7, friction: 0.02, frictionAir: 0.015, fallbackScale: 0.72,
+    });
+    this.playerAnim = new PlayerAnim(this, this.player);
+    this._lastShot = 0;
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.keyA = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
@@ -151,7 +147,7 @@ class DebugPortalLevelScene extends Phaser.Scene {
       this.guardSystem.addGuard(guard.x, guard.y, guard.dir, guard.range, guard.angle, guard.patrol || 0);
     }
 
-    for (const drop of this.cfg.drops || []) this._scheduleDrop(drop);
+    this.workloadSystem = new WorkloadSystem(this, this.cfg.drops);
   }
 
   _scheduleDrop(drop) {
@@ -169,17 +165,24 @@ class DebugPortalLevelScene extends Phaser.Scene {
   }
 
   _warnDrop(drop) {
+    // Landing-zone telegraph (no full-height line): a blinking danger patch on
+    // the ground plus a small downward chevron, so the player reads "something
+    // lands HERE" without a confusing beam from the sky.
     const marker = this.add.graphics().setDepth(6);
-    marker.fillStyle(0xff2222, 0.25);
-    marker.fillRect(drop.x - drop.w / 2, drop.landY - 8, drop.w, 8);
-    marker.lineStyle(2, 0xff4444, 0.8);
-    marker.lineBetween(drop.x, 0, drop.x, drop.landY);
+    const x0 = drop.x - drop.w / 2;
+    marker.fillStyle(0xff3030, 0.28);
+    marker.fillRect(x0, drop.landY - 6, drop.w, 6);
+    marker.lineStyle(2, 0xff5050, 0.9);
+    marker.strokeRect(x0, drop.landY - 6, drop.w, 6);
+    // downward chevron hovering above the zone
+    const cy = drop.landY - 40;
+    marker.fillStyle(0xff5050, 0.9);
+    marker.fillTriangle(drop.x - 9, cy, drop.x + 9, cy, drop.x, cy + 12);
     this.tweens.add({
-      targets: marker,
-      alpha: 0,
-      duration: drop.warn || 850,
-      onComplete: () => marker.destroy()
+      targets: marker, alpha: 0.15, duration: (drop.warn || 850) / 3,
+      yoyo: true, repeat: -1
     });
+    this.time.delayedCall(drop.warn || 850, () => marker.destroy());
   }
 
   _spawnDrop(drop) {
@@ -304,27 +307,20 @@ class DebugPortalLevelScene extends Phaser.Scene {
     if (this._winning) return;
     this._winning = true;
     this.matter.body.setVelocity(this.player.body, { x: 0, y: 0 });
+    const runStats = computeRunStats(this);
 
-    const CHS = '"Microsoft YaHei","PingFang SC",Arial,sans-serif';
-    const panel = this.add.graphics().setScrollFactor(0).setDepth(40);
-    panel.fillStyle(0xfffff8, 0.94);
-    panel.fillRoundedRect(286, 152, 388, 196, 16);
-    this.add.text(480, 204, `${this.cfg.title} 到家`, {
-      fontSize: '30px',
-      color: '#19233a',
-      fontFamily: CHS,
-      fontStyle: 'bold'
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(41);
-    this.add.text(480, 260, '调试完成，可以继续改这一关', {
-      fontSize: '16px',
-      color: '#445566',
-      fontFamily: CHS
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(41);
-    this.add.text(480, 310, '按 R 重开 / Esc 回标题', {
-      fontSize: '14px',
-      color: '#667788',
-      fontFamily: CHS
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(41);
+    const nextScene = this.scene.key === 'Level2Scene' ? 'Level3Scene' : 'TitleScene';
+    addSettlementWinScreen(this, {
+      stats: runStats,
+      onPrimary: () => {
+        this.cameras.main.fadeOut(400, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start(nextScene));
+      },
+      onSecondary: () => {
+        this.cameras.main.fadeOut(400, 0, 0, 0);
+        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('TitleScene'));
+      }
+    });
   }
 
   update() {
@@ -332,8 +328,8 @@ class DebugPortalLevelScene extends Phaser.Scene {
     if (this.inkSystem) this.inkSystem.update();
     if (this.portalSystem) this.portalSystem.update();
     if (this.guardSystem) this.guardSystem.update();
-    this._syncDrops();
-    this._checkWorkloadHits();
+    this._updatePlayerAnim();
+    if (this.workloadSystem) this.workloadSystem.update();
     this._applyConveyors();
     if (this.inkSystem) this._updateInkBar(this.inkSystem.getRatio());
 
@@ -341,6 +337,16 @@ class DebugPortalLevelScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this.keyR)) this.scene.restart();
     if (Phaser.Input.Keyboard.JustDown(this.keyEsc)) this.scene.start('TitleScene');
     if (Math.abs(this.player.body.velocity.y) > 1.2) this.onGround = false;
+  }
+
+  _updatePlayerAnim() {
+    if (!this.playerAnim) return;
+    if (this.portalSystem && this.portalSystem.shotCount !== this._lastShot) {
+      this._lastShot = this.portalSystem.shotCount;
+      this.playerAnim.flashPortal();
+    }
+    if (this.inkSystem && this.inkSystem.drawing) this.playerAnim.setInk(true);
+    this.playerAnim.update(this.game.loop.delta);
   }
 
   _syncDrops() {
@@ -414,25 +420,37 @@ class DebugPortalLevelScene extends Phaser.Scene {
     }
   }
 
+  // Belt influence is a gentle DRIFT added to the player's own movement (see
+  // _move) instead of overwriting velocity — so the player can still walk against
+  // the belt, and it no longer feels sticky or too fast.
   _applyConveyors() {
+    this._playerBelt = 0;
     if (!this._conveyors || !this._conveyors.length) return;
-    this._applyConveyorsToBody(this.player && this.player.body);
+
+    const BELT_FACTOR = 0.4;
+    const pb = this.player && this.player.body;
+    if (pb && pb.bounds) {
+      const c = this._beltUnder(pb);
+      if (c) this._playerBelt = c.speed * BELT_FACTOR;
+    }
+    // Loose workload gets a softened push so it still slides off the belt.
     for (const body of this.matter.world.getAllBodies()) {
-      if (body.label === 'workload') this._applyConveyorsToBody(body);
+      if (body.label !== 'workload' || !body.bounds) continue;
+      const c = this._beltUnder(body);
+      if (c) this.matter.body.setVelocity(body, {
+        x: c.speed * 0.6,
+        y: body.velocity ? body.velocity.y : 0
+      });
     }
   }
 
-  _applyConveyorsToBody(body) {
-    if (!body || !body.bounds) return;
+  _beltUnder(body) {
     for (const c of this._conveyors) {
-      const zone = { min: { x: c.x, y: c.y }, max: { x: c.x + c.w, y: c.y + c.h } };
-      if (!this._boundsOverlap(body.bounds, zone)) continue;
-      this.matter.body.setVelocity(body, {
-        x: c.speed,
-        y: body.velocity ? body.velocity.y : 0
-      });
-      return;
+      // Extend the belt zone upward so a body standing on top counts as "on belt".
+      const zone = { min: { x: c.x, y: c.y - 30 }, max: { x: c.x + c.w, y: c.y + c.h } };
+      if (this._boundsOverlap(body.bounds, zone)) return c;
     }
+    return null;
   }
 
   _move() {
@@ -444,14 +462,15 @@ class DebugPortalLevelScene extends Phaser.Scene {
                  Phaser.Input.Keyboard.JustDown(this.keyW) ||
                  Phaser.Input.Keyboard.JustDown(this.cursors.up);
 
+    const belt = this._playerBelt || 0;
     if (left) {
-      this.player.setVelocityX(-SPEED);
+      this.player.setVelocityX(-SPEED + belt);
       this.player.setFlipX(true);
     } else if (right) {
-      this.player.setVelocityX(SPEED);
+      this.player.setVelocityX(SPEED + belt);
       this.player.setFlipX(false);
     } else {
-      this.player.setVelocityX(this.player.body.velocity.x * 0.82);
+      this.player.setVelocityX(this.player.body.velocity.x * 0.82 + belt);
     }
 
     if (jump && this.onGround) {

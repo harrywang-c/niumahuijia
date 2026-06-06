@@ -67,7 +67,12 @@ function makeScene() {
           fillCircle() { return this; },
           fillRoundedRect() { return this; },
           setPosition() { return this; },
-          setRotation() { return this; }
+          setRotation() { return this; },
+          save() { return this; },
+          restore() { return this; },
+          translateCanvas() { return this; },
+          rotateCanvas() { return this; },
+          fillTriangle() { return this; }
         };
       },
       image() {
@@ -213,6 +218,16 @@ test('ink consumption clamps to the maximum and clears preview when exhausted mi
   assert.equal(ink.usedInk, 10);
   assert.equal(ink.getRatio(), 0);
   assert.equal(ink.previewGfx.cleared, true);
+});
+
+test('ink visuals use blue strokes instead of black ink', () => {
+  const src = fs.readFileSync(path.join(root, 'src/systems/InkSystem.js'), 'utf8');
+
+  assert.match(src, /INK_COLORS/);
+  assert.match(src, /preview:\s*0x1597ff/);
+  assert.match(src, /shadow:\s*0x07519c/);
+  assert.doesNotMatch(src, /lineStyle\(10,\s*0x111111/);
+  assert.doesNotMatch(src, /fillStyle\(0x111111/);
 });
 
 test('ink HUD redraws the remaining ink bar using the supplied ratio', () => {

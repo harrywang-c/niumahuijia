@@ -1,3 +1,10 @@
+const INK_COLORS = {
+  preview: 0x1597ff,
+  body: 0x1aaeff,
+  shine: 0x8ee8ff,
+  shadow: 0x07519c,
+};
+
 class InkSystem {
   constructor(scene, maxInk) {
     this.scene = scene;
@@ -64,7 +71,15 @@ class InkSystem {
 
   _drawPreview() {
     this.previewGfx.clear();
-    this.previewGfx.lineStyle(10, 0x111111, 0.8);
+    this.previewGfx.lineStyle(14, INK_COLORS.shadow, 0.48);
+    this._strokePreviewPath();
+    this.previewGfx.lineStyle(10, INK_COLORS.preview, 0.82);
+    this._strokePreviewPath();
+    this.previewGfx.lineStyle(4, INK_COLORS.shine, 0.42);
+    this._strokePreviewPath();
+  }
+
+  _strokePreviewPath() {
     this.previewGfx.beginPath();
     this.previewGfx.moveTo(this.points[0].x, this.points[0].y);
     for (let i = 1; i < this.points.length; i++)
@@ -76,6 +91,9 @@ class InkSystem {
     if (this.points.length < 2) return;
     const THICKNESS = 12;
 
+    // Ink is static, so it never moves — draw each segment ONCE into the shared
+    // permanent graphics at world coordinates (no per-segment Graphics object,
+    // no per-frame re-sync). This keeps long strokes cheap and avoids frame drops.
     for (let i = 0; i < this.points.length - 1; i++) {
       const a = this.points[i], b = this.points[i + 1];
       const cx = (a.x + b.x) / 2;
@@ -92,15 +110,19 @@ class InkSystem {
         restitution: 0
       });
 
-      // Draw permanent ink visual (static graphics, updated each frame)
-      const gfx = this.scene.add.graphics().setDepth(5);
-      gfx.fillStyle(0x111111, 0.95);
-      gfx.fillRect(-segLen / 2 - 1, -THICKNESS / 2 - 1, segLen + 2, THICKNESS + 2);
-      // Ink texture noise
-      gfx.fillStyle(0x000000, 0.4);
-      gfx.fillRect(-segLen / 4, -THICKNESS / 2, segLen / 6, THICKNESS);
+      const g = this.permanentGfx;
+      g.save();
+      g.translateCanvas(cx, cy);
+      g.rotateCanvas(angle);
+      g.fillStyle(INK_COLORS.shadow, 0.92);
+      g.fillRoundedRect(-segLen / 2 - 2, -THICKNESS / 2 - 2, segLen + 4, THICKNESS + 4, 7);
+      g.fillStyle(INK_COLORS.body, 0.96);
+      g.fillRoundedRect(-segLen / 2, -THICKNESS / 2, segLen, THICKNESS, 6);
+      g.fillStyle(INK_COLORS.shine, 0.34);
+      g.fillRoundedRect(-segLen / 2 + 2, -THICKNESS / 2 + 1, Math.max(4, segLen - 4), 4, 2);
+      g.restore();
 
-      this.inkBodies.push({ body, gfx, segLen, THICKNESS });
+      this.inkBodies.push({ body });
     }
   }
 
@@ -109,12 +131,6 @@ class InkSystem {
   }
 
   update() {
-    // Sync ink visuals with physics body positions
-    for (const { body, gfx } of this.inkBodies) {
-      if (body && body.position) {
-        gfx.setPosition(body.position.x, body.position.y);
-        gfx.setRotation(body.angle);
-      }
-    }
+    // Ink bodies are static — nothing to sync per frame.
   }
 }

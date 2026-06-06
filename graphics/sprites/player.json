@@ -1,0 +1,15 @@
+{
+  "frameWidth": 432,
+  "frameHeight": 352,
+  "frames": {
+    "idle": 0,
+    "run1": 1,
+    "run2": 2,
+    "run3": 3,
+    "run4": 4,
+    "run5": 5,
+    "portal_shoot": 6,
+    "ink_cast": 7,
+    "jump": 8
+  }
+}

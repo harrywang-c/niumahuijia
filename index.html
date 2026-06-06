@@ -6,15 +6,18 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-    canvas { image-rendering: pixelated; }
+    canvas { image-rendering: auto; }
   </style>
 </head>
 <body>
   <script src="js/phaser.min.js"></script>
   <script src="src/sprites.js"></script>
+  <script src="src/assets.js"></script>
+  <script src="src/uiArt.js"></script>
   <script src="src/systems/InkSystem.js"></script>
   <script src="src/systems/PortalSystem.js"></script>
   <script src="src/systems/GuardSystem.js"></script>
+  <script src="src/systems/WorkloadSystem.js"></script>
   <script src="src/scenes/DebugPortalLevelScene.js"></script>
   <script src="src/scenes/TitleScene.js"></script>
   <script src="src/scenes/TutorialScene.js"></script>

@@ -7,11 +7,11 @@ class GuardSystem {
 
   // facing: 'left' | 'right', patrolDist: px each side (0 = stationary)
   addGuard(x, y, facing, visionRange, halfAngleDeg, patrolDist) {
-    const sprite = this.scene.add.image(x, y, 'cowboy')
-      .setScale(1.5).setDepth(7);
+    const sprite = addBossSprite(this.scene, x, y);
     if (facing === 'left') sprite.setFlipX(true);
+    if (sprite._real && this.scene.anims.exists('boss_idle')) sprite.play('boss_idle');
     this.guards.push({
-      sprite, x, y, facing,
+      sprite, x, y, facing, alerted: false,
       range: visionRange || 150,
       halfAngle: Phaser.Math.DegToRad(halfAngleDeg || 45),
       startX: x,
@@ -36,14 +36,44 @@ class GuardSystem {
           g.sprite.setFlipX(g.facing === 'left');
         }
         g.sprite.setX(g.x);
+        if (g.sprite._real && this.scene.anims.exists('boss_walk')) g.sprite.play('boss_walk', true);
       }
 
       this._drawCone(g);
       if (this._sees(g, px, py)) {
-        this.scene._resetLevel();
+        this._catch(g);
         return;
       }
     }
+  }
+
+  // Caught by the boss: freeze the scene, hold a readable speech bubble + alert
+  // pose for a beat, THEN restart — so the player can actually read what he said.
+  _catch(g) {
+    if (this._caught || this.scene._winning) return;
+    this._caught = true;
+    this.scene._resetting = true;   // blocks player movement in _move()
+
+    if (this.scene.player && this.scene.player.body) {
+      this.scene.matter.body.setVelocity(this.scene.player.body, { x: 0, y: 0 });
+    }
+    if (g.sprite._real && this.scene.anims.exists('boss_alert')) g.sprite.play('boss_alert');
+
+    const lines = ['加班吗？', '晚点走！', '到哪了？'];
+    GuardSystem._bubbleIdx = (GuardSystem._bubbleIdx || 0) + 1;
+    const text = lines[GuardSystem._bubbleIdx % lines.length];
+    const CHS = '"Microsoft YaHei","PingFang SC",Arial,sans-serif';
+
+    const bubble = this.scene.add.text(g.x, g.y - 78, text, {
+      fontSize: '26px', color: '#1a1a1a', fontFamily: CHS, fontStyle: 'bold',
+      backgroundColor: '#f6e7c1', padding: { left: 16, right: 16, top: 10, bottom: 10 },
+      stroke: '#caa85f', strokeThickness: 2,
+    }).setOrigin(0.5).setDepth(40).setScrollFactor(1).setScale(0.2);
+    // Pop in and hold (no quick fade — it stays until the scene restarts).
+    this.scene.tweens.add({ targets: bubble, scale: 1, duration: 220, ease: 'Back.easeOut' });
+
+    this.scene.cameras.main.flash(200, 180, 30, 30);
+    this.scene.time.delayedCall(1400, () => this.scene.scene.restart());
   }
 
   _drawCone(g) {

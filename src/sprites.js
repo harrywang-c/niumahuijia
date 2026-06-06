@@ -1,10 +1,12 @@
 function createTextures(scene) {
-  if (scene.textures.exists('player')) return; // already created
-  _playerTex(scene);
-  _cowboyTex(scene);
-  _tileTex(scene);
-  _portalTex(scene);
-  _houseTex(scene);
+  // Player/boss come from real spritesheets (assets.js) when available; only
+  // generate the procedural versions as a fallback. Environment textures
+  // (tiles/portals/house) are always procedural.
+  if (!scene.textures.exists('player')) _playerTex(scene);
+  if (!scene.textures.exists('boss') && !scene.textures.exists('cowboy')) _cowboyTex(scene);
+  if (!scene.textures.exists('grass')) _tileTex(scene);
+  if (!scene.textures.exists('portalBlue')) _portalTex(scene);
+  if (!scene.textures.exists('house')) _houseTex(scene);
 }
 
 function _playerTex(scene) {

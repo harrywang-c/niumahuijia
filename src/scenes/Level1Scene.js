@@ -1,17 +1,27 @@
 class Level1Scene extends Phaser.Scene {
   constructor() { super('Level1Scene'); }
 
+  preload() {
+    preloadUiArt(this);
+    preloadGameAssets(this);
+  }
+
   create() {
     createTextures(this);
+    createGameAnimations(this);
     this.LEVEL_WIDTH = 3200;
     this.GROUND_Y    = 440;
     this._winning    = false;
     this._resetting  = false;
     this.onGround    = false;
     this.sightBlockers = [];
+    this._startTime  = this.time.now;
 
     this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 700);
     this.matter.world.on('collisionstart', this._onCollision.bind(this));
+    // collisionactive keeps onGround true while resting on thin ink/platforms,
+    // so jumping off ink works (collisionstart alone fires only once on landing).
+    this.matter.world.on('collisionactive', this._onCollision.bind(this));
 
     this._buildBackground();
     this._buildPlatforms();
@@ -27,6 +37,16 @@ class Level1Scene extends Phaser.Scene {
     this.guardSystem  = new GuardSystem(this);
     this.guardSystem.addGuard(2380, this.GROUND_Y - 28, 'left', 260, 38, 95);
 
+    // KPI gauntlet — fills the long empty mid-stretch (x 800–2148) with dodgeable
+    // workload drops so it's a tense run, not dead walking.
+    const GY = this.GROUND_Y;
+    this.workloadSystem = new WorkloadSystem(this, [
+      { x: 1180, landY: GY, w: 56, h: 46, text: 'KPI', every: 2600, delay: 1200, warn: 900 },
+      { x: 1460, landY: GY, w: 56, h: 46, text: 'OKR', every: 3000, delay: 2200, warn: 900 },
+      { x: 1740, landY: GY, w: 64, h: 48, text: 'DDL', every: 3400, delay: 1700, warn: 850, slide: 2 },
+      { x: 1990, landY: GY, w: 56, h: 46, text: 'KPI', every: 2800, delay: 2800, warn: 850 },
+    ]);
+
     this.cameras.main.setBounds(0, 0, this.LEVEL_WIDTH, 600);
     this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
     this.cameras.main.fadeIn(700);
@@ -37,80 +57,15 @@ class Level1Scene extends Phaser.Scene {
 
   // ── Background ────────────────────────────────────────────────────────────────
   _buildBackground() {
-    const W = 960, H = 540, GY = this.GROUND_Y, LW = this.LEVEL_WIDTH;
+    const GY = this.GROUND_Y, LW = this.LEVEL_WIDTH;
 
-    // Sky — rich gradient top to horizon
-    const sky = this.add.graphics().setScrollFactor(0).setDepth(-10);
-    sky.fillGradientStyle(0x1a3a6e, 0x1a3a6e, 0x89c8e8, 0x89c8e8, 1);
-    sky.fillRect(0, 0, W, H);
+    // Rainy-night city (shared backdrop, unified with Level 2/3).
+    addRainCityBackdrop(this);
 
-    // Distant mountains
-    const mts = this.add.graphics().setScrollFactor(0.07).setDepth(-8);
-    mts.fillStyle(0x6e7eaa);
-    [[180,118],[460,88],[740,130],[1020,76],[1300,110],[1580,94],[1860,124]].forEach(([mx, mh]) => {
-      mts.fillTriangle(mx - 110, GY - 52, mx, GY - 52 - mh, mx + 110, GY - 52);
-      mts.fillTriangle(mx + 50, GY - 52, mx + 130, GY - 52 - mh * 0.55, mx + 205, GY - 52);
-    });
-    // Snow caps
-    mts.fillStyle(0xddeeff);
-    [[180,118],[740,130],[1300,110],[1860,124]].forEach(([mx, mh]) => {
-      const cap = mh * 0.3;
-      mts.fillTriangle(mx - cap * 0.85, GY - 52 - mh + cap * 1.2, mx, GY - 52 - mh, mx + cap * 0.85, GY - 52 - mh + cap * 1.2);
-    });
-
-    // Background trees
-    const btrees = this.add.graphics().setScrollFactor(0.28).setDepth(-6);
-    for (let i = 0; i < 18; i++) {
-      const tx = 60 + i * 95 + (i * 137 * 7 % 55);
-      const th = 52 + (i * 137 * 3 % 34);
-      const tw = 30 + (i * 137 % 18);
-      btrees.fillStyle(0x1e5a1e);
-      btrees.fillEllipse(tx - 7, GY - th + 4, tw * 0.68, th * 0.58);
-      btrees.fillStyle(0x2a7a2a);
-      btrees.fillEllipse(tx, GY - th - 4, tw + 8, th * 0.76);
-      btrees.fillStyle(0x3d8a3d);
-      btrees.fillEllipse(tx + 7, GY - th - 16, tw * 0.68, th * 0.56);
-      btrees.fillStyle(0x5a3318);
-      btrees.fillRect(tx - 4, GY - th + Math.floor(tw * 0.32), 8, Math.floor(th - tw * 0.28));
-    }
-
-    // Rolling hills at horizon — top sits ABOVE ground, no bleed into pits
-    const hills = this.add.graphics().setScrollFactor(0.18).setDepth(-5);
-    hills.fillStyle(0x3faa3f);
-    for (let x = -80; x < 1700; x += 270)
-      hills.fillEllipse(x + 135, GY - 80, 320, 130);
-    hills.fillStyle(0x56bb44);
-    for (let x = 70; x < 1600; x += 215)
-      hills.fillEllipse(x + 108, GY - 60, 254, 88);
-
-    // Ground fill — covers pit areas with dark earth so no bleed-through
+    // Dark wet asphalt fill under the platforms / over the pits.
     const gfill = this.add.graphics().setDepth(-4);
-    gfill.fillStyle(0x3c2112);
-    gfill.fillRect(0, GY, LW, 300);
-    gfill.fillStyle(0x482818);
-    for (let x = 0; x < LW; x += 96)
-      for (let yy = GY + 16; yy < GY + 110; yy += 22)
-        gfill.fillRect(x + (yy % 48), yy, 30, 6);
-
-    // Clouds — fluffy with drop shadow
-    const clouds = this.add.graphics().setScrollFactor(0.38).setDepth(-3);
-    [[90,62],[340,42],[600,74],[860,50],[1130,66],[1380,40],[1640,70],[1900,54],[2160,78]].forEach(([cx, cy]) => {
-      // shadow
-      clouds.fillStyle(0x99bbdd, 0.35);
-      clouds.fillEllipse(cx + 8, cy + 10, 134, 52);
-      clouds.fillEllipse(cx + 50, cy - 6, 94, 42);
-      clouds.fillEllipse(cx - 28, cy, 80, 34);
-      // body
-      clouds.fillStyle(0xffffff);
-      clouds.fillEllipse(cx, cy, 132, 50);
-      clouds.fillEllipse(cx + 46, cy - 14, 92, 40);
-      clouds.fillEllipse(cx - 26, cy - 8, 78, 34);
-      clouds.fillEllipse(cx + 20, cy - 26, 66, 34);
-      // bright top
-      clouds.fillStyle(0xeef6ff);
-      clouds.fillEllipse(cx + 46, cy - 16, 68, 26);
-      clouds.fillEllipse(cx + 20, cy - 28, 50, 24);
-    });
+    gfill.fillStyle(0x111114, 0.92);
+    gfill.fillRect(0, GY + 70, LW, 280);
   }
 
   // ── Platforms ─────────────────────────────────────────────────────────────────
@@ -136,58 +91,61 @@ class Level1Scene extends Phaser.Scene {
 
   _drawPlatform(px, py, pw, ph) {
     const g = this.add.graphics().setDepth(0);
-    // Deep dark earth base
-    g.fillStyle(0x2a1508);
+    // Dark concrete body (matches the rainy-city platforms in Level 2/3).
+    g.fillStyle(0x151417);
     g.fillRect(px, py, pw, ph);
-    // Rich mid-earth
-    g.fillStyle(0x58300e);
-    g.fillRect(px, py + 14, pw, ph - 14);
-    // Subtle earth bands
-    g.fillStyle(0x6d3c18);
-    for (let yy = py + 28; yy < py + ph - 4; yy += 20)
-      g.fillRect(px + 14, yy, pw - 28, 9);
-    // Grass-earth dark border
-    g.fillStyle(0x166618);
-    g.fillRect(px, py + 10, pw, 8);
-    // Vivid grass surface
-    g.fillStyle(0x28cc3e);
-    g.fillRect(px, py, pw, 12);
-    // Grass highlight
-    g.fillStyle(0x5ce870, 0.55);
-    g.fillRect(px + 4, py, pw - 8, 5);
+    g.fillStyle(0x3d3b3d);
+    g.fillRect(px, py + 12, pw, ph - 12);
+    // Curb top + faint wet highlight
+    g.fillStyle(0x2f3032);
+    g.fillRect(px, py, pw, 10);
+    g.fillStyle(0xd1a343, 0.5);
+    g.fillRect(px + 4, py + 2, pw - 8, 3);
     // Edge shadows
-    g.fillStyle(0x000000, 0.1);
-    g.fillRect(px, py, 5, ph);
-    g.fillRect(px + pw - 5, py, 5, ph);
+    g.fillStyle(0x000000, 0.18);
+    g.fillRect(px, py, 4, ph);
+    g.fillRect(px + pw - 4, py, 4, ph);
   }
 
   // ── Hazards ───────────────────────────────────────────────────────────────────
   _buildHazards() {
     // Pit 1: x 224–434 = 210px (too wide to jump, must draw ink bridge)
-    this._addPoop(224, 13);
+    this._addSewerPit(224, 13);
     // Pit 2: x 562–800 = 238px (too wide even with bridge, must use portal)
-    this._addPoop(562, 15);
+    this._addSewerPit(562, 15);
     // Small final jump: x 2106–2160 = 54px — no poop, just a reset pit
     this.matter.add.rectangle(2133, this.GROUND_Y + 40, 60, 20,
       { isStatic: true, isSensor: true, label: 'pit' });
   }
 
-  _addPoop(startX, count) {
-    for (let i = 0; i < count; i++) {
-      const sx = startX + i * 16 + 8;
-      this.add.text(sx, this.GROUND_Y - 2, '💩', {
-        fontSize: '13px'
-      }).setOrigin(0.5, 1).setDepth(2);
-      this.matter.add.rectangle(sx, this.GROUND_Y - 8, 12, 12, {
-        isStatic: true, isSensor: true, label: 'spike'
-      });
+  _addSewerPit(startX, count) {
+    const GY = this.GROUND_Y;
+    const w = count * 16;
+    const g = this.add.graphics().setDepth(2);
+    // Open sewer trench — dark recessed hole.
+    g.fillStyle(0x07080a, 0.96);
+    g.fillRect(startX, GY - 4, w, 40);
+    g.fillStyle(0x0c0f14, 0.9);
+    g.fillRect(startX, GY - 4, w, 10);
+    // Hazard-striped lip on the near edge.
+    for (let xx = startX; xx < startX + w; xx += 14) {
+      g.fillStyle(((xx - startX) / 14) % 2 < 1 ? 0xc8a23a : 0x1a1a1e, 0.95);
+      g.fillRect(xx, GY - 6, 14, 4);
     }
-    this.matter.add.rectangle(
-      startX + (count * 16) / 2,
-      this.GROUND_Y + 64,
-      count * 16, 20,
-      { isStatic: true, isSensor: true, label: 'pit' }
-    );
+    // A couple of manhole rims poking out of the dark.
+    g.fillStyle(0x2b2b30);
+    for (let k = 0; k < count; k += 6) {
+      const cx = startX + k * 16 + 20;
+      g.fillEllipse(cx, GY + 2, 22, 7);
+      g.fillStyle(0x17171b);
+      g.fillEllipse(cx, GY + 2, 14, 4);
+      g.fillStyle(0x2b2b30);
+    }
+    // Only falling INTO the hole kills — no invisible edge-touch death (that
+    // felt unfair/weird). The gap has no floor, so missing the bridge = fall in.
+    this.matter.add.rectangle(startX + w / 2, GY + 64, w, 20, {
+      isStatic: true, isSensor: true, label: 'pit'
+    });
   }
 
   // ── Portal Zone ───────────────────────────────────────────────────────────────
@@ -333,16 +291,9 @@ class Level1Scene extends Phaser.Scene {
 
   // ── Player ────────────────────────────────────────────────────────────────────
   _buildPlayer() {
-    this.player = this.matter.add.image(80, this.GROUND_Y - 60, 'player', null, {
-      label: 'player',
-      frictionAir: 0.05,
-      friction: 0.5,
-      restitution: 0,
-      fixedRotation: true,
-      density: 0.004
-    });
-    this.player.setFixedRotation();
-    this.player.setScale(1.5).setDepth(9);
+    this.player = addPlayerSprite(this, 80, this.GROUND_Y - 60, { depth: 9 });
+    this.playerAnim = new PlayerAnim(this, this.player);
+    this._lastShot = 0;
 
     this.cursors  = this.input.keyboard.createCursorKeys();
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -478,6 +429,7 @@ class Level1Scene extends Phaser.Scene {
     if (this._winning) return;
     this._winning = true;
     this.inkSystem.drawing = false;
+    const runStats = computeRunStats(this);
 
     // Stop player
     this.matter.body.setVelocity(this.player.body, { x: 0, y: 0 });
@@ -485,7 +437,7 @@ class Level1Scene extends Phaser.Scene {
     // Ink splash particles
     for (let i = 0; i < 28; i++) {
       const sp = this.add.graphics().setScrollFactor(0).setDepth(28);
-      sp.fillStyle(0x111111, Phaser.Math.FloatBetween(0.3, 0.92));
+      sp.fillStyle(0x1aaeff, Phaser.Math.FloatBetween(0.3, 0.92));
       sp.fillCircle(
         Phaser.Math.Between(250, 710),
         Phaser.Math.Between(120, 420),
@@ -494,56 +446,21 @@ class Level1Scene extends Phaser.Scene {
       this.tweens.add({ targets: sp, alpha: 0, duration: 1100, delay: i * 45, ease: 'Quad.easeIn' });
     }
 
-    this.time.delayedCall(700, () => {
-      this.cameras.main.fadeOut(750, 255, 255, 240);
-      this.time.delayedCall(850, () => {
-        // Win overlay
-        const ov = this.add.graphics().setScrollFactor(0).setDepth(30);
-        ov.fillStyle(0xfffff8); ov.fillRect(0, 0, 960, 540);
-
-        const CHS = '"Microsoft YaHei","PingFang SC",Arial,sans-serif';
-        this.add.text(480, 150, '🏠  回家了！', {
-          fontSize: '64px', color: '#1a1a2e', fontFamily: CHS,
-          stroke: '#888', strokeThickness: 1
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
-
-        this.add.text(480, 256, '第 一 关  完 成', {
-          fontSize: '24px', color: '#445566', fontFamily: CHS, fontStyle: 'bold',
-          letterSpacing: 4
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
-
-        // Ink splat signature
-        const sig = this.add.graphics().setScrollFactor(0).setDepth(31);
-        sig.fillStyle(0x111111, 0.1);
-        [[200, 420, 30], [680, 380, 22], [480, 450, 18], [340, 390, 14]].forEach(([x, y, r]) => {
-          sig.fillCircle(x, y, r);
-          sig.fillEllipse(x + r, y + r * 0.4, r * 1.3, r * 0.5);
-        });
-
-        // Graphical button with rounded corners
-        const btnBg = this.add.graphics().setScrollFactor(0).setDepth(31);
-        const drawBtn = (hover) => {
-          btnBg.clear();
-          btnBg.fillStyle(hover ? 0x4d8ae0 : 0x2a5fa8);
-          btnBg.fillRoundedRect(366, 346, 228, 52, 14);
-          btnBg.fillStyle(hover ? 0x7ab0f5 : 0x4d8ae0, 0.35);
-          btnBg.fillRoundedRect(366, 346, 228, 22, { tl: 14, tr: 14, bl: 0, br: 0 });
-        };
-        drawBtn(false);
-
-        const btn = this.add.text(480, 373, '返 回 主 界 面', {
-          fontSize: '20px', color: '#ffffff', fontFamily: CHS, fontStyle: 'bold',
-          letterSpacing: 2
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(32)
-          .setInteractive({ useHandCursor: true });
-
-        btn.on('pointerover', () => drawBtn(true));
-        btn.on('pointerout',  () => drawBtn(false));
-        btn.on('pointerup', () => {
-          btn.disableInteractive();
+    // Brief white flash for juice, then show the settlement directly.
+    // (Do NOT fadeOut-to-white here — a held fade overlay would cover the
+    //  settlement screen and leave the player stuck on a white screen.)
+    this.cameras.main.flash(260, 255, 255, 240);
+    this.time.delayedCall(900, () => {
+      addSettlementWinScreen(this, {
+        stats: runStats,
+        onPrimary: () => {
+          this.cameras.main.fadeOut(400, 0, 0, 0);
+          this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Level2Scene'));
+        },
+        onSecondary: () => {
           this.cameras.main.fadeOut(400, 0, 0, 0);
           this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('TitleScene'));
-        });
+        }
       });
     });
   }
@@ -554,6 +471,15 @@ class Level1Scene extends Phaser.Scene {
     if (this.inkSystem)    this.inkSystem.update();
     if (this.portalSystem) this.portalSystem.update();
     if (this.guardSystem)  this.guardSystem.update();
+    if (this.workloadSystem) this.workloadSystem.update();
+    if (this.playerAnim) {
+      if (this.portalSystem && this.portalSystem.shotCount !== this._lastShot) {
+        this._lastShot = this.portalSystem.shotCount;
+        this.playerAnim.flashPortal();
+      }
+      if (this.inkSystem && this.inkSystem.drawing) this.playerAnim.setInk(true);
+      this.playerAnim.update(this.game.loop.delta);
+    }
     this._updateInkBar(this.inkSystem.getRatio());
     this._drawPortalDots();
 

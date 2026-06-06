@@ -1,0 +1,19 @@
+{
+  "frameWidth": 264,
+  "frameHeight": 326,
+  "frames": {
+    "idle_right": 0,
+    "walk_right1": 1,
+    "walk_right2": 2,
+    "walk_right3": 3,
+    "walk_right4": 4,
+    "walk_right5": 5,
+    "alert": 6,
+    "idle_left": 7,
+    "walk_left1": 8,
+    "walk_left2": 9,
+    "walk_left3": 10,
+    "walk_left4": 11,
+    "walk_left5": 12
+  }
+}

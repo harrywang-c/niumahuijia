@@ -1,16 +1,24 @@
 class TutorialScene extends Phaser.Scene {
   constructor() { super('TutorialScene'); }
 
+  preload() {
+    preloadUiArt(this);
+    preloadGameAssets(this);
+  }
+
   create() {
     createTextures(this);
+    createGameAnimations(this);
     this.LEVEL_WIDTH = 2300;
     this.GROUND_Y = 440;
     this._winning = false;
     this._resetting = false;
     this.onGround = false;
+    this._startTime = this.time.now;
 
     this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 700);
     this.matter.world.on('collisionstart', this._onCollision.bind(this));
+    this.matter.world.on('collisionactive', this._onCollision.bind(this));
 
     this._buildBackground();
     this._buildPlatforms();
@@ -21,6 +29,10 @@ class TutorialScene extends Phaser.Scene {
     this.input.mouse.disableContextMenu();
     this.inkSystem = new InkSystem(this, 520);
     this.portalSystem = new PortalSystem(this);
+    // One gentle, well-telegraphed drop to teach "watch the sky".
+    this.workloadSystem = new WorkloadSystem(this, [
+      { x: 900, landY: 440, w: 56, h: 46, text: 'KPI', every: 3600, delay: 1800, warn: 1200 },
+    ]);
 
     this.cameras.main.setBounds(0, 0, this.LEVEL_WIDTH, 600);
     this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
@@ -31,45 +43,11 @@ class TutorialScene extends Phaser.Scene {
   }
 
   _buildBackground() {
-    const W = 960, H = 540, GY = this.GROUND_Y, LW = this.LEVEL_WIDTH;
-
-    const sky = this.add.graphics().setScrollFactor(0).setDepth(-10);
-    sky.fillGradientStyle(0x1a3a6e, 0x1a3a6e, 0x89c8e8, 0x89c8e8, 1);
-    sky.fillRect(0, 0, W, H);
-
-    const mts = this.add.graphics().setScrollFactor(0.07).setDepth(-8);
-    mts.fillStyle(0x6e7eaa);
-    [[180, 100], [460, 78], [760, 116], [1080, 86], [1420, 104], [1760, 88]].forEach(([mx, mh]) => {
-      mts.fillTriangle(mx - 110, GY - 52, mx, GY - 52 - mh, mx + 110, GY - 52);
-      mts.fillTriangle(mx + 54, GY - 52, mx + 132, GY - 52 - mh * 0.56, mx + 206, GY - 52);
-    });
-
-    const hills = this.add.graphics().setScrollFactor(0.18).setDepth(-5);
-    hills.fillStyle(0x3faa3f);
-    for (let x = -80; x < 1700; x += 270) hills.fillEllipse(x + 135, GY - 80, 320, 130);
-    hills.fillStyle(0x56bb44);
-    for (let x = 70; x < 1700; x += 215) hills.fillEllipse(x + 108, GY - 60, 254, 88);
-
-    const groundFill = this.add.graphics().setDepth(-4);
-    groundFill.fillStyle(0x3c2112);
-    groundFill.fillRect(0, GY, LW, 300);
-    groundFill.fillStyle(0x482818);
-    for (let x = 0; x < LW; x += 96) {
-      for (let y = GY + 16; y < GY + 110; y += 22) groundFill.fillRect(x + (y % 48), y, 30, 6);
-    }
-
-    const clouds = this.add.graphics().setScrollFactor(0.38).setDepth(-3);
-    [[110, 62], [380, 42], [660, 74], [940, 50], [1240, 66], [1580, 44]].forEach(([cx, cy]) => {
-      clouds.fillStyle(0x99bbdd, 0.35);
-      clouds.fillEllipse(cx + 8, cy + 10, 134, 52);
-      clouds.fillEllipse(cx + 50, cy - 6, 94, 42);
-      clouds.fillEllipse(cx - 28, cy, 80, 34);
-      clouds.fillStyle(0xffffff);
-      clouds.fillEllipse(cx, cy, 132, 50);
-      clouds.fillEllipse(cx + 46, cy - 14, 92, 40);
-      clouds.fillEllipse(cx - 26, cy - 8, 78, 34);
-      clouds.fillEllipse(cx + 20, cy - 26, 66, 34);
-    });
+    const GY = this.GROUND_Y, LW = this.LEVEL_WIDTH;
+    addRainCityBackdrop(this);
+    const gfill = this.add.graphics().setDepth(-4);
+    gfill.fillStyle(0x111114, 0.92);
+    gfill.fillRect(0, GY + 70, LW, 280);
   }
 
   _buildPlatforms() {
@@ -98,21 +76,17 @@ class TutorialScene extends Phaser.Scene {
 
   _drawPlatform(px, py, pw, ph) {
     const g = this.add.graphics().setDepth(0);
-    g.fillStyle(0x2a1508);
+    g.fillStyle(0x151417);
     g.fillRect(px, py, pw, ph);
-    g.fillStyle(0x58300e);
-    g.fillRect(px, py + 14, pw, ph - 14);
-    g.fillStyle(0x6d3c18);
-    for (let yy = py + 28; yy < py + ph - 4; yy += 20) g.fillRect(px + 14, yy, pw - 28, 9);
-    g.fillStyle(0x166618);
-    g.fillRect(px, py + 10, pw, 8);
-    g.fillStyle(0x28cc3e);
-    g.fillRect(px, py, pw, 12);
-    g.fillStyle(0x5ce870, 0.55);
-    g.fillRect(px + 4, py, pw - 8, 5);
-    g.fillStyle(0x000000, 0.1);
-    g.fillRect(px, py, 5, ph);
-    g.fillRect(px + pw - 5, py, 5, ph);
+    g.fillStyle(0x3d3b3d);
+    g.fillRect(px, py + 12, pw, ph - 12);
+    g.fillStyle(0x2f3032);
+    g.fillRect(px, py, pw, 10);
+    g.fillStyle(0xd1a343, 0.5);
+    g.fillRect(px + 4, py + 2, pw - 8, 3);
+    g.fillStyle(0x000000, 0.18);
+    g.fillRect(px, py, 4, ph);
+    g.fillRect(px + pw - 4, py, 4, ph);
   }
 
   _addPitSensor(left, right) {
@@ -173,16 +147,9 @@ class TutorialScene extends Phaser.Scene {
   }
 
   _buildPlayer() {
-    this.player = this.matter.add.image(82, this.GROUND_Y - 60, 'player', null, {
-      label: 'player',
-      frictionAir: 0.05,
-      friction: 0.5,
-      restitution: 0,
-      fixedRotation: true,
-      density: 0.004
-    });
-    this.player.setFixedRotation();
-    this.player.setScale(1.5).setDepth(9);
+    this.player = addPlayerSprite(this, 82, this.GROUND_Y - 60, { depth: 9 });
+    this.playerAnim = new PlayerAnim(this, this.player);
+    this._lastShot = 0;
 
     this.cursors = this.input.keyboard.createCursorKeys();
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -272,6 +239,12 @@ class TutorialScene extends Phaser.Scene {
         text: '鼠标左键拖拽画墨水\n把墨水当桥走过去'
       },
       {
+        triggerX: 820,
+        x: 980,
+        y: GY - 150,
+        text: '小心头顶！KPI 会砸下来\n看到红框就躲开'
+      },
+      {
         triggerX: 1080,
         x: 1250,
         y: GY - 130,
@@ -353,52 +326,20 @@ class TutorialScene extends Phaser.Scene {
     this._winning = true;
     this.inkSystem.drawing = false;
     this.matter.body.setVelocity(this.player.body, { x: 0, y: 0 });
+    const runStats = computeRunStats(this);
 
     this.cameras.main.flash(160, 255, 245, 190);
     this.time.delayedCall(420, () => {
-      const ov = this.add.graphics().setScrollFactor(0).setDepth(30);
-      ov.fillStyle(0xfffff8, 0.95);
-      ov.fillRect(0, 0, 960, 540);
-
-      const CHS = '"Microsoft YaHei","PingFang SC",Arial,sans-serif';
-      this.add.text(480, 154, '教程完成', {
-        fontSize: '56px',
-        color: '#1a1a2e',
-        fontFamily: CHS,
-        fontStyle: 'bold'
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
-
-      this.add.text(480, 246, '现在去第一关，把回家的路走出来。', {
-        fontSize: '22px',
-        color: '#445566',
-        fontFamily: CHS
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(31);
-
-      const btnBg = this.add.graphics().setScrollFactor(0).setDepth(31);
-      const drawBtn = (hover) => {
-        btnBg.clear();
-        btnBg.fillStyle(hover ? 0x4d8ae0 : 0x2a5fa8);
-        btnBg.fillRoundedRect(366, 336, 228, 52, 14);
-        btnBg.fillStyle(hover ? 0x7ab0f5 : 0x4d8ae0, 0.35);
-        btnBg.fillRoundedRect(366, 336, 228, 22, { tl: 14, tr: 14, bl: 0, br: 0 });
-      };
-      drawBtn(false);
-
-      const btn = this.add.text(480, 363, '进 入 第 一 关', {
-        fontSize: '20px',
-        color: '#ffffff',
-        fontFamily: CHS,
-        fontStyle: 'bold',
-        letterSpacing: 2
-      }).setOrigin(0.5).setScrollFactor(0).setDepth(32)
-        .setInteractive({ useHandCursor: true });
-
-      btn.on('pointerover', () => drawBtn(true));
-      btn.on('pointerout', () => drawBtn(false));
-      btn.on('pointerup', () => {
-        btn.disableInteractive();
-        this.cameras.main.fadeOut(400, 0, 0, 0);
-        this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Level1Scene'));
+      addSettlementWinScreen(this, {
+        stats: runStats,
+        onPrimary: () => {
+          this.cameras.main.fadeOut(400, 0, 0, 0);
+          this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('Level1Scene'));
+        },
+        onSecondary: () => {
+          this.cameras.main.fadeOut(400, 0, 0, 0);
+          this.cameras.main.once('camerafadeoutcomplete', () => this.scene.start('TitleScene'));
+        }
       });
     });
   }
@@ -407,6 +348,15 @@ class TutorialScene extends Phaser.Scene {
     this._move();
     if (this.inkSystem) this.inkSystem.update();
     if (this.portalSystem) this.portalSystem.update();
+    if (this.workloadSystem) this.workloadSystem.update();
+    if (this.playerAnim) {
+      if (this.portalSystem && this.portalSystem.shotCount !== this._lastShot) {
+        this._lastShot = this.portalSystem.shotCount;
+        this.playerAnim.flashPortal();
+      }
+      if (this.inkSystem && this.inkSystem.drawing) this.playerAnim.setInk(true);
+      this.playerAnim.update(this.game.loop.delta);
+    }
     if (this._inkFill && this.inkSystem) this._updateInkBar(this.inkSystem.getRatio());
     this._checkTutorial();
 

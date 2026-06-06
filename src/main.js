@@ -1,9 +1,10 @@
 function getInitialSceneFromQuery() {
   const params = new URLSearchParams(window.location.search);
+  if (params.get('level') === '1') return 'Level1Scene';
   if (params.get('level') === '2') return 'Level2Scene';
   if (params.get('level') === '3') return 'Level3Scene';
-  if (params.get('scene') === 'Level2Scene') return 'Level2Scene';
-  if (params.get('scene') === 'Level3Scene') return 'Level3Scene';
+  const KNOWN = ['TitleScene', 'TutorialScene', 'Level1Scene', 'Level2Scene', 'Level3Scene'];
+  if (KNOWN.includes(params.get('scene'))) return params.get('scene');
   return 'TitleScene';
 }
 
