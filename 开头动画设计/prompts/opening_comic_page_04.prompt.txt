@@ -1,0 +1,26 @@
+Use case: illustration-story
+Asset type: 16:9 landscape opening comic page for the browser game "牛马回家"
+Input images:
+- Image 1: primary character reference, keep the white horse head, black mane, tired hoodie/jacket worker outfit, messenger bag, brass-and-blue portal gun.
+- Image 2: boss character reference for continuity, boss may appear only as a small distant threat silhouette if needed.
+- Image 3: title/start-screen reference for warm home, blue glowing ink road, gritty paper comic style.
+- Image 4: rainy city background reference, use the same urban night atmosphere.
+
+Primary request:
+Create page 04 of a four-page dynamic comic opening sequence. The page is one complete 16:9 landscape comic page divided into three vertical panels with thick hand-drawn black gutters.
+
+Panel 1, left: two glowing portals or blue ink gates appear on the ground, connected by a dotted/flowing blue ink trail. The horse worker points at them with a puzzled face.
+Panel 2, center: visual game-rule diagram without text: the horse worker draws a blue ink line with the portal gun, arrows and motion marks show blue tears/ink flowing through portals toward a tiny home silhouette. Use clear icon-like comic composition but no readable symbols or words.
+Panel 3, right: final heroic/warm frame, the horse worker seen from behind, walking along the glowing blue ink road toward a cozy warmly lit house in the rainy city. The portal gun and bag are visible; distant boss pressure fades behind him.
+
+Style:
+Match the provided game art: gritty hand-drawn comic illustration, thick black ink outlines, textured beige paper grain, rainy gray city, warm yellow home lights, vivid blue ink path, slightly rough handmade comic feel.
+
+Composition:
+Ending page should feel like "press start": hopeful, readable, and suitable as the final hold frame before gameplay. Leave an empty banner-like area near the bottom for the game to overlay the start prompt.
+
+Text:
+Do not render readable text, Chinese characters, English words, numbers, logos, watermarks, UI labels, or fake typography. Leave empty hand-drawn caption boxes and one empty final banner for later overlay.
+
+Constraints:
+Preserve the horse worker visual identity from the references. No new main characters. No photorealism. No 3D. No pixel art. No garbled text.

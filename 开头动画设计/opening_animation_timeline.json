@@ -1,0 +1,125 @@
+{
+  "name": "牛马回家开场漫画动画",
+  "version": 1,
+  "canvas": {
+    "width": 960,
+    "height": 540,
+    "aspect": "16:9"
+  },
+  "artwork": [
+    "generated/opening_comic_page_01.png",
+    "generated/opening_comic_page_02.png",
+    "generated/opening_comic_page_03.png",
+    "generated/opening_comic_page_04.png"
+  ],
+  "playback": {
+    "mode": "page_then_panel_reveal",
+    "pageTransition": {
+      "type": "ink_wipe",
+      "duration": 0.35
+    },
+    "panelReveal": {
+      "type": "left_to_right_mask",
+      "duration": 0.28
+    },
+    "finalHold": 1.6
+  },
+  "beats": [
+    {
+      "id": "p1_1",
+      "page": 1,
+      "panel": 1,
+      "duration": 1.4,
+      "caption": "又是一个普通的周五夜晚。",
+      "sfx": "rain_office"
+    },
+    {
+      "id": "p1_2",
+      "page": 1,
+      "panel": 2,
+      "duration": 1.1,
+      "caption": "19:00。",
+      "sfx": "clock_bell"
+    },
+    {
+      "id": "p1_3",
+      "page": 1,
+      "panel": 3,
+      "duration": 1.2,
+      "caption": "下班！回家！",
+      "sfx": "chair_scrape"
+    },
+    {
+      "id": "p2_1",
+      "page": 2,
+      "panel": 1,
+      "duration": 1.1,
+      "caption": "只要走出这扇门。",
+      "sfx": "footstep"
+    },
+    {
+      "id": "p2_2",
+      "page": 2,
+      "panel": 2,
+      "duration": 1.4,
+      "caption": "消息，从四面八方追了上来。",
+      "sfx": "notification_burst"
+    },
+    {
+      "id": "p2_3",
+      "page": 2,
+      "panel": 3,
+      "duration": 1.5,
+      "caption": "老板：晚点走。",
+      "sfx": "boss_sting"
+    },
+    {
+      "id": "p3_1",
+      "page": 3,
+      "panel": 1,
+      "duration": 1.5,
+      "caption": "回家的路，怎么这么难。",
+      "sfx": "rain_heavy"
+    },
+    {
+      "id": "p3_2",
+      "page": 3,
+      "panel": 2,
+      "duration": 1.8,
+      "caption": "",
+      "sfx": "tear_gather"
+    },
+    {
+      "id": "p3_3",
+      "page": 3,
+      "panel": 3,
+      "duration": 1.5,
+      "caption": "泪水落地，铺成了路。",
+      "sfx": "ink_bloom"
+    },
+    {
+      "id": "p4_1",
+      "page": 4,
+      "panel": 1,
+      "duration": 1.2,
+      "caption": "墨迹连成传送门。",
+      "sfx": "portal_open"
+    },
+    {
+      "id": "p4_2",
+      "page": 4,
+      "panel": 2,
+      "duration": 1.4,
+      "caption": "画线，引导泪水，穿过传送门。",
+      "sfx": "ink_flow"
+    },
+    {
+      "id": "p4_3",
+      "page": 4,
+      "panel": 3,
+      "duration": 2.4,
+      "caption": "开始回家",
+      "sfx": "start_warm"
+    }
+  ]
+}

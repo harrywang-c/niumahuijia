@@ -8,6 +8,7 @@ class Level1Scene extends Phaser.Scene {
     this._winning    = false;
     this._resetting  = false;
     this.onGround    = false;
+    this.sightBlockers = [];
 
     this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 700);
     this.matter.world.on('collisionstart', this._onCollision.bind(this));
@@ -16,21 +17,22 @@ class Level1Scene extends Phaser.Scene {
     this._buildPlatforms();
     this._buildHazards();
     this._buildPortalWall();
+    this._buildFinalObstacle();
     this._buildHouse();
     this._buildPlayer();
 
     this.input.mouse.disableContextMenu();
-    this.inkSystem    = new InkSystem(this, 400);
+    this.inkSystem    = new InkSystem(this, 340);
     this.portalSystem = new PortalSystem(this);
     this.guardSystem  = new GuardSystem(this);
-    this.guardSystem.addGuard(1900, this.GROUND_Y - 28, 'left', 160, 45, 90);
+    this.guardSystem.addGuard(2380, this.GROUND_Y - 28, 'left', 260, 38, 95);
 
     this.cameras.main.setBounds(0, 0, this.LEVEL_WIDTH, 600);
     this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
     this.cameras.main.fadeIn(700);
 
     this._buildHUD();
-    this._initTutorial();
+    this._addSightLessonSign();
   }
 
   // ── Background ────────────────────────────────────────────────────────────────
@@ -115,10 +117,11 @@ class Level1Scene extends Phaser.Scene {
   _buildPlatforms() {
     const T = 32, GY = this.GROUND_Y;
     const platforms = [
-      [0,    GY, 7,  4],
-      [370,  GY, 4,  4],
-      [800,  GY, 12, 4],
-      [1050, GY, 65, 4],
+      [0,    GY, 7,  4],   // x 0–224: start area
+      [434,  GY, 4,  4],   // x 434–562: island (pit 1 forces ink bridge)
+      [800,  GY, 12, 4],   // x 800–1184: post-portal landing
+      [1050, GY, 33, 4],   // x 1050–2106: main stretch part 1
+      [2160, GY, 33, 4],   // x 2160–3216: main stretch part 2 (60px jump gap before)
     ];
 
     for (const [px, py, tw, th] of platforms) {
@@ -160,21 +163,25 @@ class Level1Scene extends Phaser.Scene {
 
   // ── Hazards ───────────────────────────────────────────────────────────────────
   _buildHazards() {
-    // Pit 1: x 224–370
-    this._addSpikes(224, this.GROUND_Y - 30, 9);
-    // Pit 2: x 498–800
-    this._addSpikes(498, this.GROUND_Y - 30, 19);
+    // Pit 1: x 224–434 = 210px (too wide to jump, must draw ink bridge)
+    this._addPoop(224, 13);
+    // Pit 2: x 562–800 = 238px (too wide even with bridge, must use portal)
+    this._addPoop(562, 15);
+    // Small final jump: x 2106–2160 = 54px — no poop, just a reset pit
+    this.matter.add.rectangle(2133, this.GROUND_Y + 40, 60, 20,
+      { isStatic: true, isSensor: true, label: 'pit' });
   }
 
-  _addSpikes(startX, y, count) {
+  _addPoop(startX, count) {
     for (let i = 0; i < count; i++) {
       const sx = startX + i * 16 + 8;
-      this.add.image(sx, y, 'spike');
-      this.matter.add.rectangle(sx, y + 4, 10, 8, {
+      this.add.text(sx, this.GROUND_Y - 2, '💩', {
+        fontSize: '13px'
+      }).setOrigin(0.5, 1).setDepth(2);
+      this.matter.add.rectangle(sx, this.GROUND_Y - 8, 12, 12, {
         isStatic: true, isSensor: true, label: 'spike'
       });
     }
-    // Danger ground under spikes (keeps player from falling forever)
     this.matter.add.rectangle(
       startX + (count * 16) / 2,
       this.GROUND_Y + 64,
@@ -183,45 +190,59 @@ class Level1Scene extends Phaser.Scene {
     );
   }
 
-  // ── Portal Gate ───────────────────────────────────────────────────────────────
-  // Puzzle: pit 2 (x=498–800) is too wide to jump/ink across.
-  // Shoot blue portal at feet (left pad), orange at far floor (right pad), walk through.
+  // ── Portal Zone ───────────────────────────────────────────────────────────────
+  // Pit 2 (x=562–800) is 238px — too wide to bridge. No walls here so portal
+  // shots land freely on both pads. Pit itself forces portal usage.
   _buildPortalWall() {
-    const T = 32, GY = this.GROUND_Y;
+    const GY = this.GROUND_Y;
 
-    // Decorative gate posts on each side of the pit
-    // Left posts at x=464 (on island platform x=370-498)
-    for (let j = 0; j < 4; j++) {
-      this.add.image(464 + T / 2, GY - T * (4 - j) + T / 2, 'brick').setDepth(1);
-      this.add.image(464 + T + T / 2, GY - T * (4 - j) + T / 2, 'brick').setDepth(1);
+    // Vertical light beam above each pad (purely visual, no physics)
+    this._addPortalBeam(498, GY, 0);   // blue beam on island
+    this._addPortalBeam(900, GY, 1);   // orange beam on platform 3
+
+    // Portal pads — glowing floor targets
+    this._addPortalPad(498, GY, 0);
+    this._addPortalPad(900, GY, 1);
+  }
+
+  _addWall(x, groundY, w, h) {
+    this.matter.add.rectangle(x + w / 2, groundY - h / 2, w, h, {
+      isStatic: true, label: 'wall', friction: 0.4
+    });
+    this.sightBlockers.push({ x, y: groundY - h, width: w, height: h });
+
+    const g = this.add.graphics().setDepth(3);
+    g.fillStyle(0x252232);
+    g.fillRect(x, groundY - h, w, h);
+    g.fillStyle(0x161422, 0.85);
+    for (let yy = groundY - h + 14; yy < groundY - 4; yy += 20)
+      g.fillRect(x, yy, w, 3);
+    g.fillStyle(0x5a5568, 0.5);
+    g.fillRect(x, groundY - h, 2, h);
+    const stripeH = 10;
+    for (let xx = x; xx < x + w; xx += 6) {
+      g.fillStyle(xx % 12 < 6 ? 0xdd4400 : 0x111111, 0.75);
+      g.fillRect(xx, groundY - stripeH, 6, stripeH);
     }
-    // Right posts at x=800 (on platform 3 start)
-    for (let j = 0; j < 4; j++) {
-      this.add.image(800 + T / 2, GY - T * (4 - j) + T / 2, 'brick').setDepth(1);
-      this.add.image(800 + T + T / 2, GY - T * (4 - j) + T / 2, 'brick').setDepth(1);
-    }
+  }
 
-    // Glowing lintel on left post
-    const leftGlow = this.add.graphics().setDepth(3);
-    leftGlow.lineStyle(3, 0x4488ff, 0.75);
-    leftGlow.strokeRect(464, GY - 128, T * 2, 128);
-    this.tweens.add({ targets: leftGlow, alpha: 0.18, duration: 900, yoyo: true, repeat: -1 });
-
-    // Glowing lintel on right post
-    const rightGlow = this.add.graphics().setDepth(3);
-    rightGlow.lineStyle(3, 0xff8800, 0.75);
-    rightGlow.strokeRect(800, GY - 128, T * 2, 128);
-    this.tweens.add({ targets: rightGlow, alpha: 0.18, duration: 1100, yoyo: true, repeat: -1 });
-
-    // Gate post physics — blocks player but NOT portal shots (excluded in raycast by label)
-    this.matter.add.rectangle(464 + T, GY - 64, T * 2, 128,
-      { isStatic: true, label: 'gatePost', friction: 0.3 });
-    this.matter.add.rectangle(800 + T, GY - 64, T * 2, 128,
-      { isStatic: true, label: 'gatePost', friction: 0.3 });
-
-    // Portal pads — glowing floor indicators
-    this._addPortalPad(480, GY, 0);   // blue pad on island (near left post)
-    this._addPortalPad(840, GY, 1);   // orange pad on platform 3
+  _addPortalBeam(x, groundY, portalIdx) {
+    const color = portalIdx === 0 ? 0x4488ff : 0xff8800;
+    const beam = this.add.graphics().setDepth(2);
+    const beamH = 160;
+    // Outer glow
+    beam.fillStyle(color, 0.06);
+    beam.fillRect(x - 18, groundY - beamH, 36, beamH);
+    // Mid beam
+    beam.fillStyle(color, 0.12);
+    beam.fillRect(x - 10, groundY - beamH, 20, beamH);
+    // Core
+    beam.fillStyle(color, 0.22);
+    beam.fillRect(x - 4, groundY - beamH, 8, beamH);
+    this.tweens.add({
+      targets: beam, alpha: 0.35, duration: portalIdx === 0 ? 1100 : 850,
+      yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+    });
   }
 
   _addPortalPad(x, groundY, portalIdx) {
@@ -243,22 +264,71 @@ class Level1Scene extends Phaser.Scene {
     this.tweens.add({ targets: arrow, y: groundY - 20, duration: 550, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
+  // ── Final Obstacle ────────────────────────────────────────────────────────────
+  // Wall-and-vision puzzle: the slabs are real sight blockers, so the player can
+  // use their blind spots while setting up a portal route to the house side.
+  _buildFinalObstacle() {
+    const GY = this.GROUND_Y;
+
+    this._addWall(2260, GY, 26, 130);
+    this._addWall(2460, GY, 26, 110);
+    this._addWall(2588, GY, 22, 92);
+
+    this._addPortalBeam(2210, GY, 0);
+    this._addPortalBeam(2638, GY, 1);
+    this._addPortalPad(2210, GY, 0);
+    this._addPortalPad(2638, GY, 1);
+  }
+
+  _addSightLessonSign() {
+    const CHS = '"Microsoft YaHei","PingFang SC",Arial,sans-serif';
+    const x = 2148, y = this.GROUND_Y - 112;
+
+    const sign = this.add.graphics().setDepth(4);
+    sign.fillStyle(0x07101e, 0.82);
+    sign.fillRoundedRect(x - 118, y - 34, 236, 68, 10);
+    sign.lineStyle(1.5, 0x4a7ab8, 0.8);
+    sign.strokeRoundedRect(x - 118, y - 34, 236, 68, 10);
+    sign.fillStyle(0x111111, 0.9);
+    sign.fillRect(x - 102, y + 15, 204, 8);
+    sign.fillStyle(0x4a7ab8, 0.8);
+    sign.fillRect(x - 104, y + 23, 6, 46);
+    sign.fillRect(x + 98, y + 23, 6, 46);
+
+    this.add.text(x, y - 10, '墨水能挡住巡逻视线', {
+      fontSize: '17px',
+      color: '#ffffff',
+      fontFamily: CHS,
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 4
+    }).setOrigin(0.5).setDepth(5);
+
+    this.add.text(x, y + 14, '剩下的墨不多，画短一点', {
+      fontSize: '12px',
+      color: '#a9c8ff',
+      fontFamily: CHS,
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(5);
+  }
+
   // ── House ─────────────────────────────────────────────────────────────────────
   _buildHouse() {
     const GY = this.GROUND_Y;
-    this.add.image(2050, GY - 44, 'house').setScale(1.7).setDepth(4);
+    this.add.image(2680, GY - 44, 'house').setScale(1.7).setDepth(4);
 
     // Trigger sensor at door
-    this.matter.add.rectangle(2020, GY - 18, 48, 76, {
+    this.matter.add.rectangle(2650, GY - 18, 48, 76, {
       isStatic: true, isSensor: true, label: 'houseTrigger'
     });
 
     // Welcome mat
     const mat = this.add.graphics().setDepth(3);
     mat.fillStyle(0x885533);
-    mat.fillRect(2002, GY - 2, 44, 10);
+    mat.fillRect(2632, GY - 2, 44, 10);
     mat.fillStyle(0xcc8844, 0.5);
-    for (let i = 0; i < 4; i++) mat.fillRect(2004 + i * 10, GY, 6, 8);
+    for (let i = 0; i < 4; i++) mat.fillRect(2634 + i * 10, GY, 6, 8);
   }
 
   // ── Player ────────────────────────────────────────────────────────────────────
@@ -278,6 +348,7 @@ class Level1Scene extends Phaser.Scene {
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.keyA     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A);
     this.keyD     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D);
+    this.keyW     = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
   }
 
   // ── Collisions ────────────────────────────────────────────────────────────────
@@ -288,7 +359,6 @@ class Level1Scene extends Phaser.Scene {
 
       if (a === 'ground' || b === 'ground' ||
           a === 'portalWall' || b === 'portalWall' ||
-          a === 'gatePost' || b === 'gatePost' ||
           a === 'ink' || b === 'ink') {
         this.onGround = true;
       }
@@ -396,84 +466,6 @@ class Level1Scene extends Phaser.Scene {
     if (hasO) { d1.fillStyle(0xffaa66, 0.5); d1.fillCircle(113, 62, 4); }
   }
 
-  // ── Tutorial ──────────────────────────────────────────────────────────────────
-  _initTutorial() {
-    this._tutStep = 0;
-    this._tutLabel = null;
-    this._tutArrow = null;
-    this._tutContainer = null;
-
-    // Each tip: { triggerX, worldX, worldY, text }
-    this._tips = [
-      { triggerX:  20, worldX:  95, worldY: this.GROUND_Y - 95, text: '← →  移动\nSpace  跳跃' },
-      { triggerX: 160, worldX: 290, worldY: this.GROUND_Y - 108, text: '鼠标左键拖画墨水\n搭桥过坑！' },
-      { triggerX: 400, worldX: 560, worldY: this.GROUND_Y - 115, text: '坑太宽！用传送门 🔵🟠\n右键瞄准脚下蓝圈射击\n再右键瞄准对岸橙圈\n走进蓝圈即可传送！' },
-      { triggerX: 820, worldX: 1060, worldY: this.GROUND_Y - 88, text: '⚠ 前方牛仔在巡逻！\n视野锥会抓你\n等他背对时偷偷过去' },
-    ];
-
-    this._showTip(0);
-  }
-
-  _showTip(idx) {
-    if (this._tutContainer) { this._tutContainer.destroy(); this._tutContainer = null; }
-    if (this._tutArrow)     { this._tutArrow.destroy();     this._tutArrow = null; }
-    if (idx >= this._tips.length) return;
-
-    const tip = this._tips[idx];
-    const CHS = '"Microsoft YaHei","PingFang SC",Arial,sans-serif';
-    const lines = tip.text.split('\n').length;
-    const TW = 248, TH = 22 + lines * 22;
-
-    // Container bobs as a unit
-    const cx = tip.worldX, cy = tip.worldY - TH - 26;
-    const container = this.add.container(cx, cy).setDepth(15);
-    this._tutContainer = container;
-
-    const bg = this.add.graphics();
-    bg.fillStyle(0x060d1e, 0.9);
-    bg.fillRoundedRect(-TW / 2, 0, TW, TH, 10);
-    bg.lineStyle(1.5, 0x4488ff, 0.65);
-    bg.strokeRoundedRect(-TW / 2, 0, TW, TH, 10);
-    // Accent top bar
-    bg.lineStyle(2.5, 0x4488ff, 1);
-    bg.beginPath();
-    bg.moveTo(-TW / 2 + 14, 1);
-    bg.lineTo(TW / 2 - 14, 1);
-    bg.strokePath();
-
-    const label = this.add.text(0, TH / 2, tip.text, {
-      fontSize: '14px', color: '#cce4ff',
-      fontFamily: CHS, align: 'center', lineSpacing: 6
-    }).setOrigin(0.5);
-
-    container.add([bg, label]);
-
-    this.tweens.add({
-      targets: container,
-      y: cy - 8,
-      duration: 950, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
-    });
-
-    // Separate arrow below the container
-    this._tutArrow = this.add.text(cx, tip.worldY - 14, '▼', {
-      fontSize: '20px', color: '#4488ff', fontFamily: 'Arial'
-    }).setOrigin(0.5).setDepth(15);
-    this.tweens.add({
-      targets: this._tutArrow,
-      y: tip.worldY - 6,
-      duration: 500, yoyo: true, repeat: -1
-    });
-  }
-
-  _checkTutorial() {
-    if (this._tutStep >= this._tips.length - 1) return;
-    const next = this._tips[this._tutStep + 1];
-    if (this.player.x > next.triggerX) {
-      this._tutStep++;
-      this._showTip(this._tutStep);
-    }
-  }
-
   // ── Win / Reset ───────────────────────────────────────────────────────────────
   _resetLevel() {
     if (this._winning || this._resetting) return;
@@ -564,7 +556,6 @@ class Level1Scene extends Phaser.Scene {
     if (this.guardSystem)  this.guardSystem.update();
     this._updateInkBar(this.inkSystem.getRatio());
     this._drawPortalDots();
-    this._checkTutorial();
 
     // Fall out of world
     if (this.player.y > 640) this._resetLevel();
@@ -579,6 +570,7 @@ class Level1Scene extends Phaser.Scene {
     const left  = this.cursors.left.isDown  || this.keyA.isDown;
     const right  = this.cursors.right.isDown || this.keyD.isDown;
     const jump   = Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
+                   Phaser.Input.Keyboard.JustDown(this.keyW) ||
                    Phaser.Input.Keyboard.JustDown(this.cursors.up);
 
     if (left) {

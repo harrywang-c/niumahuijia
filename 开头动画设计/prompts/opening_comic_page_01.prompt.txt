@@ -1,0 +1,26 @@
+Use case: illustration-story
+Asset type: 16:9 landscape opening comic page for the browser game "牛马回家"
+Input images:
+- Image 1: primary character reference, keep the white horse head, black mane, tired hoodie/jacket worker outfit, messenger bag, brass-and-blue portal gun.
+- Image 2: boss character reference, keep the bald heavy boss, dark suit, white shirt, red tie, stern face.
+- Image 3: title/start-screen reference for mood, rainy gray city, hand-drawn grain, thick black outlines, warm paper UI, blue glowing ink path.
+- Image 4: rainy city background reference, use the same urban night atmosphere.
+
+Primary request:
+Create page 01 of a four-page dynamic comic opening sequence. The page is one complete 16:9 landscape comic page divided into three vertical panels with thick hand-drawn black gutters.
+
+Panel 1, left: rainy office at night, Friday evening mood, rows of tired workers as silhouettes, city windows outside. The white horse-headed worker slumps at a desk, exhausted, still holding or near the portal gun and bag.
+Panel 2, center: close-up of a wall clock at 19:00 with dramatic hand-drawn speed lines. The horse worker's ears peek up from the bottom edge.
+Panel 3, right: the horse worker suddenly stands up, chair pushed back, bag swinging, portal gun glowing blue, expression startled but determined to leave.
+
+Style:
+Match the provided game art: gritty hand-drawn comic illustration, thick black ink outlines, textured beige paper grain, slightly rough imperfect lines, dark rainy city palette, warm yellow window lights, blue glowing ink/portal accents, expressive cartoon proportions.
+
+Composition:
+Readable at game title-screen size. Keep each panel clear and cinematic. Strong silhouettes, exaggerated action lines, no tiny clutter.
+
+Text:
+Do not render readable text, Chinese characters, English words, numbers, logos, watermarks, UI labels, or fake typography. Leave empty hand-drawn caption boxes and speech bubbles where dialogue will be overlaid later by the game.
+
+Constraints:
+Preserve the horse worker and boss visual identity from the references. No new main characters. No photorealism. No 3D. No pixel art. No extra title logo. No garbled text.

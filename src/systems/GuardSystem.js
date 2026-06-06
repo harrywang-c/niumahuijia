@@ -54,9 +54,10 @@ class GuardSystem {
     this.visionGfx.moveTo(g.x, g.y);
     for (let i = 0; i <= STEPS; i++) {
       const a = base - g.halfAngle + (g.halfAngle * 2 * i / STEPS);
+      const dist = this._clipRayDistance(g.x, g.y, a, g.range);
       this.visionGfx.lineTo(
-        g.x + Math.cos(a) * g.range,
-        g.y + Math.sin(a) * g.range
+        g.x + Math.cos(a) * dist,
+        g.y + Math.sin(a) * dist
       );
     }
     this.visionGfx.closePath();
@@ -67,9 +68,10 @@ class GuardSystem {
     this.visionGfx.moveTo(g.x, g.y);
     for (let i = 0; i <= STEPS; i++) {
       const a = base - g.halfAngle + (g.halfAngle * 2 * i / STEPS);
+      const dist = this._clipRayDistance(g.x, g.y, a, g.range);
       this.visionGfx.lineTo(
-        g.x + Math.cos(a) * g.range,
-        g.y + Math.sin(a) * g.range
+        g.x + Math.cos(a) * dist,
+        g.y + Math.sin(a) * dist
       );
     }
     this.visionGfx.closePath();
@@ -87,8 +89,12 @@ class GuardSystem {
     while (diff < -Math.PI) diff += Math.PI * 2;
     if (Math.abs(diff) > g.halfAngle) return false;
 
-    // Ink occlusion check
-    return !this._inkBlocks(g.x, g.y, px, py);
+    return !this._sightBlocked(g.x, g.y, px, py);
+  }
+
+  _sightBlocked(x1, y1, x2, y2) {
+    return this._inkBlocks(x1, y1, x2, y2) ||
+           this._wallBlocks(x1, y1, x2, y2);
   }
 
   _inkBlocks(x1, y1, x2, y2) {
@@ -99,6 +105,75 @@ class GuardSystem {
         return true;
     }
     return false;
+  }
+
+  _wallBlocks(x1, y1, x2, y2) {
+    if (!this.scene.sightBlockers) return false;
+    for (const wall of this.scene.sightBlockers) {
+      if (this._segRect(x1, y1, x2, y2, wall.x, wall.y, wall.width, wall.height))
+        return true;
+    }
+    return false;
+  }
+
+  _segRect(x1, y1, x2, y2, rx, ry, rw, rh) {
+    const left = rx, right = rx + rw, top = ry, bottom = ry + rh;
+    if (x1 >= left && x1 <= right && y1 >= top && y1 <= bottom) return true;
+    if (x2 >= left && x2 <= right && y2 >= top && y2 <= bottom) return true;
+
+    return this._segSeg(x1, y1, x2, y2, left, top, right, top) ||
+           this._segSeg(x1, y1, x2, y2, right, top, right, bottom) ||
+           this._segSeg(x1, y1, x2, y2, right, bottom, left, bottom) ||
+           this._segSeg(x1, y1, x2, y2, left, bottom, left, top);
+  }
+
+  _clipRayDistance(x, y, angle, maxDist) {
+    if (!this.scene.sightBlockers) return maxDist;
+    let best = maxDist;
+    const dx = Math.cos(angle), dy = Math.sin(angle);
+    for (const wall of this.scene.sightBlockers) {
+      const hit = this._rayRectDistance(x, y, dx, dy, wall.x, wall.y, wall.width, wall.height);
+      if (hit !== null && hit < best) best = hit;
+    }
+    return best;
+  }
+
+  _rayRectDistance(ox, oy, dx, dy, rx, ry, rw, rh) {
+    const left = rx, right = rx + rw, top = ry, bottom = ry + rh;
+    if (ox >= left && ox <= right && oy >= top && oy <= bottom) return 0;
+
+    const hits = [
+      this._raySegDistance(ox, oy, dx, dy, left, top, right, top),
+      this._raySegDistance(ox, oy, dx, dy, right, top, right, bottom),
+      this._raySegDistance(ox, oy, dx, dy, right, bottom, left, bottom),
+      this._raySegDistance(ox, oy, dx, dy, left, bottom, left, top)
+    ].filter((v) => v !== null);
+
+    return hits.length ? Math.min(...hits) : null;
+  }
+
+  _raySegDistance(ox, oy, dx, dy, x1, y1, x2, y2) {
+    const sx = x2 - x1, sy = y2 - y1;
+    const denom = dx * sy - dy * sx;
+    if (Math.abs(denom) < 1e-8) return null;
+
+    const qx = x1 - ox, qy = y1 - oy;
+    const t = (qx * sy - qy * sx) / denom;
+    const u = (qx * dy - qy * dx) / denom;
+    if (t < 0 || u < 0 || u > 1) return null;
+    return t;
+  }
+
+  _segSeg(ax, ay, bx, by, cx, cy, dx, dy) {
+    const abx = bx - ax, aby = by - ay;
+    const cdx = dx - cx, cdy = dy - cy;
+    const denom = abx * cdy - aby * cdx;
+    if (Math.abs(denom) < 1e-8) return false;
+
+    const acx = cx - ax, acy = cy - ay;
+    const t = (acx * cdy - acy * cdx) / denom;
+    const u = (acx * aby - acy * abx) / denom;
+    return t >= 0 && t <= 1 && u >= 0 && u <= 1;
   }
 
   _segCircle(x1, y1, x2, y2, cx, cy, r) {

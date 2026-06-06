@@ -1,0 +1,26 @@
+Use case: illustration-story
+Asset type: 16:9 landscape opening comic page for the browser game "牛马回家"
+Input images:
+- Image 1: primary character reference, keep the white horse head, black mane, tired hoodie/jacket worker outfit, messenger bag, brass-and-blue portal gun.
+- Image 2: boss character reference for visual continuity only; boss should not dominate this page.
+- Image 3: title/start-screen reference for blue glowing ink path and gritty paper comic style.
+- Image 4: rainy city background reference, use the same urban night atmosphere.
+
+Primary request:
+Create page 03 of a four-page dynamic comic opening sequence. The page is one complete 16:9 landscape comic page divided into three vertical panels with thick hand-drawn black gutters.
+
+Panel 1, left: the horse worker collapses on the wet pavement outside the office/construction area, sitting on the ground with bag beside him, portal gun drooping, small stress marks and dark scribble clouds around him.
+Panel 2, center: extreme close-up of the horse worker's white horse eye and cheek. A bright blue tear gathers and reflects a tiny warm home silhouette.
+Panel 3, right: the tear hits the ground and becomes a glowing blue ink puddle; the puddle curls into a small portal-like path, casting blue light on the horse worker's curious face.
+
+Style:
+Match the provided game art: gritty hand-drawn comic illustration, thick black ink outlines, textured beige paper grain, rainy gray city, wet pavement, warm yellow home reflection, vivid blue ink and portal glow, expressive melancholy turning into wonder.
+
+Composition:
+Emotional pause page. Make the tear and blue ink transformation the clearest focal points. Strong contrast between dark exhaustion and luminous blue hope.
+
+Text:
+Do not render readable text, Chinese characters, English words, numbers, logos, watermarks, UI labels, or fake typography. Leave empty caption boxes only.
+
+Constraints:
+Preserve the horse worker visual identity from the references. No new main characters. No photorealism. No 3D. No pixel art. No garbled text.

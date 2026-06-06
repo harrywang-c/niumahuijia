@@ -1,0 +1,26 @@
+Use case: illustration-story
+Asset type: 16:9 landscape opening comic page for the browser game "牛马回家"
+Input images:
+- Image 1: primary character reference, keep the white horse head, black mane, tired hoodie/jacket worker outfit, messenger bag, brass-and-blue portal gun.
+- Image 2: boss character reference, keep the bald heavy boss, dark suit, white shirt, red tie, stern face and red alert-eye motif.
+- Image 3: title/start-screen reference for mood, rainy gray city, hand-drawn grain, thick black outlines, warm paper UI, blue glowing ink path.
+- Image 4: rainy city background reference, use the same urban night atmosphere.
+
+Primary request:
+Create page 02 of a four-page dynamic comic opening sequence. The page is one complete 16:9 landscape comic page divided into three vertical panels with thick hand-drawn black gutters.
+
+Panel 1, left: low angle hallway shot, the horse worker takes the first step toward an exit door, long rainy office corridor perspective, blue portal gun glow on the floor.
+Panel 2, center: message attack scene, empty notification bubbles and empty chat cards fly in from all sides around the horse worker, who freezes with round shocked eyes. The bubbles should look like the warm paper UI cards from the title reference, but with no text.
+Panel 3, right: the boss appears huge and oppressive from the top darkness, red eyes glowing, looming over the tiny horse worker. The worker leans back nervously, legs vibrating, portal gun clutched close.
+
+Style:
+Match the provided game art: gritty hand-drawn comic illustration, thick black ink outlines, textured beige paper grain, dark gray rainy workplace atmosphere, warm yellow highlights, blue portal glow, expressive cartoon body language.
+
+Composition:
+High contrast emotional escalation from hopeful exit to message chaos to boss pressure. Keep the panels readable and not overcrowded.
+
+Text:
+Do not render readable text, Chinese characters, English words, numbers, logos, watermarks, UI labels, or fake typography. Leave empty hand-drawn notification cards, speech bubbles, and caption boxes for later overlay.
+
+Constraints:
+Preserve the horse worker and boss visual identity from the references. No new main characters. No photorealism. No 3D. No pixel art. No garbled text.

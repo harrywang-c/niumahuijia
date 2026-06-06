@@ -27,6 +27,15 @@ class PortalSystem {
     const hit = this._raycast(player.x, player.y, dx / len, dy / len);
     if (!hit) return;
 
+    // View-limit: can only shoot portals to surfaces visible on screen
+    const margin = 60;
+    if (hit.x < cam.scrollX - margin || hit.x > cam.scrollX + cam.width  + margin ||
+        hit.y < cam.scrollY - margin || hit.y > cam.scrollY + cam.height + margin) {
+      // Out of visible range — flash red and abort
+      cam.flash(140, 160, 30, 30);
+      return;
+    }
+
     const idx = this.shotCount % 2;
     this.shotCount++;
     this._shootEffect(player.x, player.y - 10, hit.x, hit.y, idx);
@@ -66,7 +75,7 @@ class PortalSystem {
       if (body.label === 'player') continue;
       if (!body.isStatic && body.label !== 'ink') continue;
       if (body.isSensor) continue;          // spikes/pits don't block portal shots
-      if (body.label === 'gatePost') continue;  // decorative gate posts pass through
+      // 'wall' bodies block portal shots just like ground — no skip here
       const hit = this._rayVsAABB(ox, oy, dx, dy, body.bounds);
       if (hit && hit.t > 5 && hit.t < bestT) {
         bestT = hit.t;

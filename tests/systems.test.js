@@ -15,6 +15,9 @@ global.Phaser = {
     Clamp(value, min, max) {
       return Math.min(max, Math.max(min, value));
     },
+    DegToRad(value) {
+      return value * Math.PI / 180;
+    },
     Distance: {
       Between(x1, y1, x2, y2) {
         return Math.hypot(x2 - x1, y2 - y1);
@@ -31,6 +34,7 @@ function loadClass(file, className) {
 
 const PortalSystem = loadClass('src/systems/PortalSystem.js', 'PortalSystem');
 const InkSystem = loadClass('src/systems/InkSystem.js', 'InkSystem');
+const GuardSystem = loadClass('src/systems/GuardSystem.js', 'GuardSystem');
 const Level1Scene = loadClass('src/scenes/Level1Scene.js', 'Level1Scene');
 
 function makeScene() {
@@ -247,4 +251,40 @@ test('ink HUD redraws the remaining ink bar using the supplied ratio', () => {
   assert.equal(lastRoundedRect.x, 40);
   assert.equal(lastRoundedRect.y, 34);
   assert.equal(lastRoundedRect.w, 44.5);
+});
+
+test('guard vision is blocked by solid level walls', () => {
+  const scene = makeScene();
+  scene.sightBlockers = [
+    { x: 140, y: 60, width: 24, height: 120 }
+  ];
+
+  const guards = new GuardSystem(scene);
+  const guard = {
+    x: 100,
+    y: 100,
+    facing: 'right',
+    range: 220,
+    halfAngle: Math.PI / 4
+  };
+
+  assert.equal(guards._sees(guard, 190, 100), false);
+});
+
+test('guard vision still catches the player when no wall crosses the sight line', () => {
+  const scene = makeScene();
+  scene.sightBlockers = [
+    { x: 140, y: 150, width: 24, height: 40 }
+  ];
+
+  const guards = new GuardSystem(scene);
+  const guard = {
+    x: 100,
+    y: 100,
+    facing: 'right',
+    range: 220,
+    halfAngle: Math.PI / 4
+  };
+
+  assert.equal(guards._sees(guard, 190, 100), true);
 });
