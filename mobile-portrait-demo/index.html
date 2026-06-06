@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>牛马回家 - 竖屏手机 Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #161820;
+      color: #f5efe2;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      overscroll-behavior: none;
+      touch-action: none;
+    }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+    .phone {
+      width: min(96vw, 430px);
+      aspect-ratio: 9 / 19.5;
+      padding: 14px;
+      border-radius: 34px;
+      background: linear-gradient(155deg, #30333b, #07080c 64%);
+      box-shadow: 0 22px 60px #0009, inset 0 0 0 2px #555861, inset 0 0 0 8px #101116;
+      position: relative;
+    }
+    .speaker {
+      width: 84px;
+      height: 5px;
+      border-radius: 999px;
+      background: #06070a;
+      position: absolute;
+      top: 9px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      box-shadow: inset 0 1px 1px #ffffff26;
+    }
+    #game-shell {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      border-radius: 24px;
+      background: #0b1024;
+      position: relative;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+    }
+    @media (max-height: 760px) {
+      .phone {
+        width: min(92vw, 360px);
+        padding: 10px;
+        border-radius: 28px;
+      }
+      #game-shell { border-radius: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="phone" aria-label="手机竖屏游戏预览">
+    <div class="speaker"></div>
+    <div id="game-shell"></div>
+  </main>
+
+  <script src="../js/phaser.min.js"></script>
+  <script src="src/theme.js"></script>
+  <script src="src/mobileLayout.js"></script>
+  <script src="src/touchControlState.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>

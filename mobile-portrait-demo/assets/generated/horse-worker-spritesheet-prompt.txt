@@ -1,0 +1,8 @@
+Create one pixel-art game asset sprite sheet on a perfectly flat solid #ff00ff chroma-key background for later background removal.
+
+Asset: main character for a vertical mobile puzzle platformer named 牛马回家.
+Subject: a small horse-headed office worker, side view facing right, white shirt, small red tie, dark trousers, tiny blue portal device in hand.
+Frames: 5 separate frames in a single horizontal strip: idle, walk 1, walk 2, walk 3, jump.
+Style: clean 16-bit pixel art, crisp square pixels, readable silhouette, warm but slightly tired expression, night commute game mood.
+Composition: each frame centered in an equal cell, generous padding, no overlap between frames.
+Technical constraints: transparent-ready chroma key source, flat #ff00ff background only, no shadows, no gradients, no anti-aliased painterly edges, no text, no watermark, no labels, no extra characters.
