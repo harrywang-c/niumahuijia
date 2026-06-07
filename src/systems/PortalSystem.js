@@ -151,18 +151,24 @@ class PortalSystem {
         this._teleportLock = true;
         this.scene.time.delayedCall(800, () => { this._teleportLock = false; });
 
-        const vel   = player.body.velocity;
-        const speed = Math.max(Math.sqrt(vel.x * vel.x + vel.y * vel.y), 7);
+        // Momentum-preserving teleport (real-Portal style). Decompose the
+        // incoming velocity against the ENTRY portal: the speed going INTO the
+        // entry surface is re-emitted OUT along the exit normal, and the
+        // tangential speed is carried to the exit tangent. So falling fast into
+        // a floor portal flings you out a wall portal horizontally, etc.
+        const v = player.body.velocity;
+        const forward = -(v.x * p.nx + v.y * p.ny);          // speed into entry surface
+        const tang = v.x * (-p.ny) + v.y * p.nx;             // tangential along entry
+        const outSpeed = Math.max(forward, 3);               // always exit outward
+        const otx = -other.ny, oty = other.nx;               // exit tangent
 
-        // Move player to exit
         this.scene.matter.body.setPosition(player.body, {
           x: other.x + other.nx * 36,
           y: other.y + other.ny * 36
         });
-        // Redirect velocity away from exit wall
         this.scene.matter.body.setVelocity(player.body, {
-          x: other.nx * speed,
-          y: other.ny * speed
+          x: other.nx * outSpeed + otx * tang,
+          y: other.ny * outSpeed + oty * tang
         });
 
         this.scene.cameras.main.flash(100, 80, 60, 220);

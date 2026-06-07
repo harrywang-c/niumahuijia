@@ -147,7 +147,8 @@ test('portal triggers from the reachable side and exits outside the destination 
 
   assert.equal(scene.player.x, 464);
   assert.equal(scene.player.y, 100);
-  assert.deepEqual(scene.player.body.velocity, { x: -7, y: 0 });
+  // Momentum-preserving exit: slow entry exits along the normal at the min speed.
+  assert.deepEqual(scene.player.body.velocity, { x: -3, y: 0 });
 });
 
 test('portal on the level wall triggers when the player touches the visible portal face', () => {
@@ -165,7 +166,7 @@ test('portal on the level wall triggers when the player touches the visible port
 
   assert.equal(scene.player.x, 500);
   assert.equal(scene.player.y, 372);
-  assert.deepEqual(scene.player.body.velocity, { x: 0, y: -7 });
+  assert.deepEqual(scene.player.body.velocity, { x: 0, y: -3 });
 });
 
 test('portal ignores the blocked side of a wall portal', () => {
