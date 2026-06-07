@@ -44,9 +44,34 @@ class TouchControls {
       fontSize: '20px', fontFamily: CHS_FONT, fontStyle: 'bold'
     }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
     this._drawToggle();
+    // permanent caption so the button reads as a switch
+    this.scene.add.text(this._toggleBtn.x, this._toggleBtn.y + this._toggleBtn.r + 11, '切换', {
+      fontSize: '12px', color: '#9aa3b5', fontFamily: CHS_FONT
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(D + 1);
+
+    // First-run pulsing hint pointing at the toggle (once per session)
+    this._hintObjs = [];
+    if (!window.__toggleHintShown) {
+      const hy = this._toggleBtn.y;
+      const tip = this.scene.add.text(this._toggleBtn.x - this._toggleBtn.r - 14, hy, '点这切换\n墨水 / 传送门', {
+        fontSize: '15px', color: '#fff2cf', fontFamily: CHS_FONT, align: 'right',
+        backgroundColor: '#000000bb', padding: { left: 9, right: 9, top: 6, bottom: 6 }
+      }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(D + 2);
+      const arrow = this.scene.add.text(this._toggleBtn.x - this._toggleBtn.r - 4, hy, '▶', {
+        fontSize: '20px', color: '#ffd36a'
+      }).setOrigin(1, 0.5).setScrollFactor(0).setDepth(D + 2);
+      this._hintObjs = [tip, arrow];
+      this.scene.tweens.add({ targets: this._hintObjs, alpha: 0.35, duration: 650, yoyo: true, repeat: -1 });
+      this.scene.time.delayedCall(8000, () => this._hideHint());
+    }
 
     this._zones = [this._joy, this._jumpBtn, this._toggleBtn];
     this._bind();
+  }
+
+  _hideHint() {
+    window.__toggleHintShown = true;
+    if (this._hintObjs) { this._hintObjs.forEach(o => o.destroy()); this._hintObjs = []; }
   }
 
   _drawThumb(x, y) {
@@ -82,7 +107,7 @@ class TouchControls {
     input.on('pointerdown', (p) => {
       if (this._inCircle(p.x, p.y, this._joy)) { this._joyId = p.id; this._updateAxis(p); }
       else if (this._inCircle(p.x, p.y, this._jumpBtn)) { this._jump = true; this._jumpId = p.id; this._drawJump(true); }
-      else if (this._inCircle(p.x, p.y, this._toggleBtn)) { this.mode = (this.mode === 'ink') ? 'portal' : 'ink'; this._drawToggle(); }
+      else if (this._inCircle(p.x, p.y, this._toggleBtn)) { this.mode = (this.mode === 'ink') ? 'portal' : 'ink'; this._drawToggle(); this._hideHint(); }
     });
     input.on('pointermove', (p) => { if (p.id === this._joyId) this._updateAxis(p); });
     input.on('pointerup', (p) => {

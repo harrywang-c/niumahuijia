@@ -220,41 +220,30 @@ class TutorialScene extends Phaser.Scene {
 
   _buildTutorial() {
     const GY = this.GROUND_Y;
+    const T = IS_TOUCH;
     this._tips = [
       {
-        triggerX: 0,
-        x: 120,
-        y: GY - 100,
-        text: '目标：走到家里面\n先用 A/D 或 ← → 左右移动'
+        triggerX: 0, x: 120, y: GY - 100,
+        text: T ? '目标：走到家里面\n用左下摇杆左右移动' : '目标：走到家里面\n先用 A/D 或 ← → 左右移动'
       },
       {
-        triggerX: 310,
-        x: 480,
-        y: GY - 150,
-        text: '按 Space 或 ↑ 跳跃\n跳上这个小台阶'
+        triggerX: 310, x: 480, y: GY - 150,
+        text: T ? '按右下「跳」键跳跃\n跳上这个小台阶' : '按 Space 或 ↑ 跳跃\n跳上这个小台阶'
       },
       {
-        triggerX: 640,
-        x: 780,
-        y: GY - 110,
-        text: '鼠标左键拖拽画墨水\n把墨水当桥走过去'
+        triggerX: 640, x: 780, y: GY - 110,
+        text: T ? '在画面上拖动画墨水\n把墨水当桥走过去' : '鼠标左键拖拽画墨水\n把墨水当桥走过去'
       },
       {
-        triggerX: 820,
-        x: 980,
-        y: GY - 150,
+        triggerX: 820, x: 980, y: GY - 150,
         text: '小心头顶！KPI 会砸下来\n看到红框就躲开'
       },
       {
-        triggerX: 1080,
-        x: 1250,
-        y: GY - 130,
-        text: '鼠标右键射传送门\n先点蓝色光柱，再点远处橙色光柱'
+        triggerX: 1080, x: 1250, y: GY - 130,
+        text: T ? '点右下「切换」到「门」模式\n再点屏幕射传送门(先近后远)' : '鼠标右键射传送门\n先点蓝色光柱，再点远处橙色光柱'
       },
       {
-        triggerX: 1580,
-        x: 1780,
-        y: GY - 110,
+        triggerX: 1580, x: 1780, y: GY - 110,
         text: '走进蓝门，会从橙门出来\n最后一直往右回家'
       },
     ];

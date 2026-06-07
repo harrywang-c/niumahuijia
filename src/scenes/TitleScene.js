@@ -49,7 +49,9 @@ class TitleScene extends Phaser.Scene {
     makeDebugButton(W - 72, H * 0.935, '调试第3关', 'Level3Scene');
 
     this.add.text(W / 2, H * 0.965,
-      '← →  移动    Space  跳跃    鼠标左键  画墨水    鼠标右键  射传送门', {
+      IS_TOUCH
+        ? '摇杆 移动    「跳」键 跳跃    拖拽 画墨水    切到「门」点击 射传送门'
+        : '← →  移动    Space  跳跃    鼠标左键  画墨水    鼠标右键  射传送门', {
       fontSize: '12px',
       color: '#c8b68a',
       fontFamily: 'monospace',

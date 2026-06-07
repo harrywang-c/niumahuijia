@@ -22,6 +22,7 @@ class WorkloadSystem {
   }
 
   _warn(drop) {
+    this._maybeShowHint();
     const marker = this.scene.add.graphics().setDepth(6);
     const x0 = drop.x - drop.w / 2;
     marker.fillStyle(0xff3030, 0.28);
@@ -35,6 +36,20 @@ class WorkloadSystem {
       targets: marker, alpha: 0.15, duration: (drop.warn || 850) / 3, yoyo: true, repeat: -1,
     });
     this.scene.time.delayedCall(drop.warn || 850, () => marker.destroy());
+  }
+
+  // One-time per session: warn the player about falling workload.
+  _maybeShowHint() {
+    if (window.__dropHintShown) return;
+    window.__dropHintShown = true;
+    const W = this.scene.scale.width;
+    const CHS = '"Microsoft YaHei","PingFang SC",Arial,sans-serif';
+    const t = this.scene.add.text(W / 2, 92, '⚠ 当心头顶！别被砸下来的 KPI 砸到', {
+      fontSize: '20px', color: '#ffd7d7', fontFamily: CHS, fontStyle: 'bold',
+      backgroundColor: '#3a0d0dcc', padding: { left: 14, right: 14, top: 8, bottom: 8 },
+      stroke: '#000000', strokeThickness: 3,
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(50);
+    this.scene.tweens.add({ targets: t, alpha: 0, delay: 3000, duration: 800, onComplete: () => t.destroy() });
   }
 
   _spawn(drop) {
