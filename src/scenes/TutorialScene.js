@@ -40,6 +40,7 @@ class TutorialScene extends Phaser.Scene {
 
     this._buildHUD();
     this._buildTutorial();
+    this.touch = new TouchControls(this);
   }
 
   _buildBackground() {
@@ -367,11 +368,13 @@ class TutorialScene extends Phaser.Scene {
   _move() {
     if (this._winning || this._resetting) return;
     const SPEED = 4.5, JUMP = -14;
-    const left = this.cursors.left.isDown || this.keyA.isDown;
-    const right = this.cursors.right.isDown || this.keyD.isDown;
+    const t = this.touch;
+    const left = this.cursors.left.isDown || this.keyA.isDown || (t && t.left);
+    const right = this.cursors.right.isDown || this.keyD.isDown || (t && t.right);
+    const touchJump = t ? t.consumeJump() : false;
     const jump = Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
       Phaser.Input.Keyboard.JustDown(this.keyW) ||
-      Phaser.Input.Keyboard.JustDown(this.cursors.up);
+      Phaser.Input.Keyboard.JustDown(this.cursors.up) || touchJump;
 
     if (left) {
       this.player.setVelocityX(-SPEED);

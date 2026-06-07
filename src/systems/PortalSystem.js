@@ -8,7 +8,10 @@ class PortalSystem {
     this._teleportLock = false;
 
     scene.input.on('pointerdown', (ptr) => {
-      if (ptr.rightButtonDown()) this._shoot(ptr);
+      if (ptr.rightButtonDown()) { this._shoot(ptr); return; }
+      // On touch: a tap in 'portal' mode (not on a control) fires a portal.
+      const t = this.scene.touch;
+      if (t && t.enabled && t.mode === 'portal' && !t.isOverControl(ptr.x, ptr.y)) this._shoot(ptr);
     });
   }
 

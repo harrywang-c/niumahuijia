@@ -13,6 +13,13 @@ const config = {
   width: 960,
   height: 540,
   backgroundColor: '#1a1a2e',
+  // Fit-scale to any screen (phones included), keep the 16:9 letterboxed.
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
+  },
+  // Allow several simultaneous touches (joystick + draw + buttons).
+  input: { activePointers: 4 },
   physics: {
     default: 'matter',
     matter: { gravity: { y: 1.5 }, debug: false }

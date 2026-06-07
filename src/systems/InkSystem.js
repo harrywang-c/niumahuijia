@@ -23,6 +23,9 @@ class InkSystem {
     const { input } = this.scene;
 
     input.on('pointerdown', (ptr) => {
+      // On touch: only draw in 'ink' mode and not when grabbing an on-screen control.
+      const t = this.scene.touch;
+      if (t && t.enabled && (t.mode !== 'ink' || t.isOverControl(ptr.x, ptr.y))) return;
       if (ptr.leftButtonDown() && this.usedInk < this.maxInk && !this.scene._winning) {
         this.drawing = true;
         this.points = [];

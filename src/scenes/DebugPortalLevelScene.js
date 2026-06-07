@@ -35,6 +35,7 @@ class DebugPortalLevelScene extends Phaser.Scene {
     this._buildSystems();
     this._buildDebugHUD();
     this._buildInkHUD();
+    this.touch = new TouchControls(this);
 
     this.input.mouse.disableContextMenu();
     this.cameras.main.setBounds(0, 0, this.LEVEL_WIDTH, 600);
@@ -457,11 +458,13 @@ class DebugPortalLevelScene extends Phaser.Scene {
   _move() {
     if (this._resetting) return;
     const SPEED = 4.5, JUMP = -14;
-    const left = this.cursors.left.isDown || this.keyA.isDown;
-    const right = this.cursors.right.isDown || this.keyD.isDown;
+    const t = this.touch;
+    const left = this.cursors.left.isDown || this.keyA.isDown || (t && t.left);
+    const right = this.cursors.right.isDown || this.keyD.isDown || (t && t.right);
+    const touchJump = t ? t.consumeJump() : false;
     const jump = Phaser.Input.Keyboard.JustDown(this.spaceKey) ||
                  Phaser.Input.Keyboard.JustDown(this.keyW) ||
-                 Phaser.Input.Keyboard.JustDown(this.cursors.up);
+                 Phaser.Input.Keyboard.JustDown(this.cursors.up) || touchJump;
 
     const belt = this._playerBelt || 0;
     if (left) {
