@@ -6,6 +6,7 @@ class PortalSystem {
     this.shotCount = 0;
     this._shootCooldown = false;
     this._teleportLock = false;
+    this._stickPortal = null;       // the just-exited portal, disarmed until player slides off it
 
     scene.input.on('pointerdown', (ptr) => {
       if (ptr.rightButtonDown()) { this._shoot(ptr); return; }
@@ -144,40 +145,56 @@ class PortalSystem {
   }
 
   update() {
-    if (!this.portals[0] || !this.portals[1] || this._teleportLock) return;
+    if (!this.portals[0] || !this.portals[1]) { this._stickPortal = null; return; }
     const player = this.scene.player;
 
-    for (let i = 0; i < 2; i++) {
-      const p = this.portals[i];
-      if (this._isPlayerTouchingPortal(p)) {
-        const other = this.portals[1 - i];
-        this._teleportLock = true;
-        this.scene.time.delayedCall(800, () => { this._teleportLock = false; });
-
-        // Momentum-preserving teleport (real-Portal style). Decompose the
-        // incoming velocity against the ENTRY portal: the speed going INTO the
-        // entry surface is re-emitted OUT along the exit normal, and the
-        // tangential speed is carried to the exit tangent. So falling fast into
-        // a floor portal flings you out a wall portal horizontally, etc.
-        const v = player.body.velocity;
-        const forward = -(v.x * p.nx + v.y * p.ny);          // speed into entry surface
-        const tang = v.x * (-p.ny) + v.y * p.nx;             // tangential along entry
-        const outSpeed = Math.max(forward, 3);               // always exit outward
-        const otx = -other.ny, oty = other.nx;               // exit tangent
-
-        this.scene.matter.body.setPosition(player.body, {
-          x: other.x + other.nx * 36,
-          y: other.y + other.ny * 36
-        });
-        this.scene.matter.body.setVelocity(player.body, {
-          x: other.nx * outSpeed + otx * tang,
-          y: other.ny * outSpeed + oty * tang
-        });
-
-        this.scene.cameras.main.flash(100, 80, 60, 220);
-        break;
-      }
+    // Re-arm the just-exited portal only after the player has slid off it (out of
+    // its area). This kills the ping-pong: after teleporting onto a floor portal
+    // you'd fall right back into it, but it stays disarmed until you walk away.
+    if (this._stickPortal !== null && !this._nearPortal(this.portals[this._stickPortal], 84, 64)) {
+      this._stickPortal = null;
     }
+
+    let inside = null;
+    if (this._isPlayerTouchingPortal(this.portals[0])) inside = 0;
+    else if (this._isPlayerTouchingPortal(this.portals[1])) inside = 1;
+
+    if (inside !== null && inside !== this._stickPortal && !this._teleportLock) {
+      const p = this.portals[inside];
+      const other = this.portals[1 - inside];
+      this._teleportLock = true;
+      this.scene.time.delayedCall(150, () => { this._teleportLock = false; });
+
+      // Momentum-preserving teleport: speed INTO the entry surface is re-emitted
+      // OUT along the exit normal; tangential speed is carried to the exit tangent.
+      const v = player.body.velocity;
+      const forward = -(v.x * p.nx + v.y * p.ny);
+      const tang = v.x * (-p.ny) + v.y * p.nx;
+      const outSpeed = Math.max(forward, 3);
+      const otx = -other.ny, oty = other.nx;
+
+      this.scene.matter.body.setPosition(player.body, {
+        x: other.x + other.nx * 44,
+        y: other.y + other.ny * 44
+      });
+      this.scene.matter.body.setVelocity(player.body, {
+        x: other.nx * outSpeed + otx * tang,
+        y: other.ny * outSpeed + oty * tang
+      });
+
+      this.scene.cameras.main.flash(100, 80, 60, 220);
+      this._stickPortal = 1 - inside;  // disarm the exit until the player slides off it
+    }
+  }
+
+  // Is the player within an expanded area around this portal (normal & tangent)?
+  _nearPortal(portal, nMax, tMax) {
+    const player = this.scene.player;
+    const dx = player.x - portal.x;
+    const dy = player.y - portal.y;
+    const nd = dx * portal.nx + dy * portal.ny;
+    const td = dx * -portal.ny + dy * portal.nx;
+    return nd >= -12 && nd <= nMax && Math.abs(td) <= tMax;
   }
 
   _isPlayerTouchingPortal(portal) {

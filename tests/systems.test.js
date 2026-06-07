@@ -145,7 +145,7 @@ test('portal triggers from the reachable side and exits outside the destination 
 
   portals.update();
 
-  assert.equal(scene.player.x, 464);
+  assert.equal(scene.player.x, 456);
   assert.equal(scene.player.y, 100);
   // Momentum-preserving exit: slow entry exits along the normal at the min speed.
   assert.deepEqual(scene.player.body.velocity, { x: -3, y: 0 });
@@ -165,7 +165,7 @@ test('portal on the level wall triggers when the player touches the visible port
   portals.update();
 
   assert.equal(scene.player.x, 500);
-  assert.equal(scene.player.y, 372);
+  assert.equal(scene.player.y, 364);
   assert.deepEqual(scene.player.body.velocity, { x: 0, y: -3 });
 });
 
@@ -198,7 +198,7 @@ test('portal triggers along the visible portal height, not only at the center po
   portals.update();
 
   assert.equal(scene.player.x, 500);
-  assert.equal(scene.player.y, 372);
+  assert.equal(scene.player.y, 364);
 });
 
 test('ink consumption clamps to the maximum and clears preview when exhausted mid-stroke', () => {
