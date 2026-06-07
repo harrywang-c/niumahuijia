@@ -21,7 +21,8 @@ class DebugPortalLevelScene extends Phaser.Scene {
     this._dropTimers = [];
     this._startTime = this.time.now;
 
-    this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 720);
+    // No TOP wall — workload drops spawn above the screen and must fall IN.
+    this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 720, 128, true, true, false, true);
     this.matter.world.on('collisionstart', this._onCollision.bind(this));
     this.matter.world.on('collisionactive', this._onCollision.bind(this));
 

@@ -16,7 +16,7 @@ class TutorialScene extends Phaser.Scene {
     this.onGround = false;
     this._startTime = this.time.now;
 
-    this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 700);
+    this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 700, 128, true, true, false, true);
     this.matter.world.on('collisionstart', this._onCollision.bind(this));
     this.matter.world.on('collisionactive', this._onCollision.bind(this));
 

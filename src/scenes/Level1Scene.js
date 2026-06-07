@@ -17,7 +17,8 @@ class Level1Scene extends Phaser.Scene {
     this.sightBlockers = [];
     this._startTime  = this.time.now;
 
-    this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 700);
+    // No TOP wall — workload drops spawn above the screen and must fall IN.
+    this.matter.world.setBounds(0, 0, this.LEVEL_WIDTH, 700, 128, true, true, false, true);
     this.matter.world.on('collisionstart', this._onCollision.bind(this));
     // collisionactive keeps onGround true while resting on thin ink/platforms,
     // so jumping off ink works (collisionstart alone fires only once on landing).
